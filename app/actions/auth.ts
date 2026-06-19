@@ -19,8 +19,8 @@ export async function login(
     return { error: "Completá todos los campos." };
   }
 
-  const validUsername = process.env.AUTH_USERNAME;
-  const validPassword = process.env.AUTH_PASSWORD;
+  const validUsername = process.env.AUTH_USERNAME ?? "admin";
+  const validPassword = process.env.AUTH_PASSWORD ?? "cyberar2026";
 
   if (username !== validUsername || password !== validPassword) {
     return { error: "Usuario o contraseña incorrectos." };
