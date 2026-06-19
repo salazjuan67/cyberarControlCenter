@@ -2,8 +2,8 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 
 function getEncodedKey() {
-  const secretKey =
-    process.env.SESSION_SECRET ?? "cybear-fallback-secret-key-2026-change-me";
+  const secretKey = process.env.SESSION_SECRET;
+  if (!secretKey) throw new Error("SESSION_SECRET no está configurado.");
   return new TextEncoder().encode(secretKey);
 }
 
