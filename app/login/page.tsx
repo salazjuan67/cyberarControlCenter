@@ -67,7 +67,7 @@ export default function LoginPage() {
           </div>
 
           {/* Error */}
-          {state?.error && (
+          {state && "error" in state && (
             <div className="mb-4 px-4 py-3 rounded-lg bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-sm text-red-600 dark:text-red-400 text-center">
               {state.error}
             </div>
