@@ -1,9 +1,11 @@
-import "server-only";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 
-const secretKey = process.env.SESSION_SECRET;
-const encodedKey = new TextEncoder().encode(secretKey);
+function getEncodedKey() {
+  const secretKey =
+    process.env.SESSION_SECRET ?? "cybear-fallback-secret-key-2026-change-me";
+  return new TextEncoder().encode(secretKey);
+}
 
 export interface SessionPayload {
   userId: string;
@@ -15,12 +17,12 @@ export async function encrypt(payload: SessionPayload) {
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("7d")
-    .sign(encodedKey);
+    .sign(getEncodedKey());
 }
 
 export async function decrypt(session: string | undefined = "") {
   try {
-    const { payload } = await jwtVerify(session, encodedKey, {
+    const { payload } = await jwtVerify(session, getEncodedKey(), {
       algorithms: ["HS256"],
     });
     return payload;
