@@ -29,14 +29,25 @@ export default function ConfiguracionPage() {
   const [showClearDialog, setShowClearDialog] = useState(false);
   const [clearDone, setClearDone] = useState(false);
 
+  const [clearing, setClearing] = useState(false);
+  const [resetting, setResetting] = useState(false);
+
   function handleSave() { setConfig(form); setSaved(true); setTimeout(() => setSaved(false), 2000); }
   function set(field: keyof EventConfig, value: string | number) { setForm((p) => ({ ...p, [field]: value })); }
 
-  function handleClearAll() {
-    clearAllData();
+  async function handleClearAll() {
+    setClearing(true);
+    await clearAllData();
+    setClearing(false);
     setShowClearDialog(false);
     setClearDone(true);
     setTimeout(() => setClearDone(false), 3000);
+  }
+
+  async function handleReset() {
+    setResetting(true);
+    await resetToDefaults();
+    setResetting(false);
   }
 
   return (
@@ -128,9 +139,9 @@ export default function ConfiguracionPage() {
           <Button onClick={handleSave} className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold gap-2">
             <Save className="w-4 h-4" />{saved ? "¡Guardado!" : "Guardar configuración"}
           </Button>
-          <Button variant="outline" onClick={resetToDefaults}
+          <Button variant="outline" onClick={handleReset} disabled={resetting}
             className="border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white bg-transparent gap-2">
-            <RotateCcw className="w-4 h-4" />Restaurar datos demo
+            <RotateCcw className="w-4 h-4" />{resetting ? "Restaurando..." : "Restaurar datos demo"}
           </Button>
         </div>
 
@@ -193,10 +204,11 @@ export default function ConfiguracionPage() {
             </Button>
             <Button
               onClick={handleClearAll}
+              disabled={clearing}
               className="bg-red-600 hover:bg-red-500 text-white font-semibold gap-2"
             >
               <Trash2 className="w-4 h-4" />
-              Sí, borrar todo
+              {clearing ? "Borrando..." : "Sí, borrar todo"}
             </Button>
           </DialogFooter>
         </DialogContent>

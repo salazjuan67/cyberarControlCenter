@@ -1,6 +1,7 @@
 "use client";
 
 import { useLayout, LayoutProvider } from "@/components/providers/LayoutContext";
+import { DataProvider } from "@/components/providers/DataProvider";
 import { Sidebar } from "@/components/layout/Sidebar";
 
 function MainLayoutInner({ children }: { children: React.ReactNode }) {
@@ -19,7 +20,7 @@ function MainLayoutInner({ children }: { children: React.ReactNode }) {
       <Sidebar />
 
       <main className="flex-1 md:ml-64 min-h-screen flex flex-col">
-        {children}
+        <DataProvider>{children}</DataProvider>
       </main>
     </div>
   );
