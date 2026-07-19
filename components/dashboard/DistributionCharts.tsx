@@ -1,7 +1,7 @@
 "use client";
 
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import type { Sponsor, Inscripcion } from "@/types";
+import type { Sponsor, Inscripcion, Moneda } from "@/types";
 import { formatCurrency } from "@/lib/formatters";
 import { useChartColors } from "@/lib/useChartColors";
 
@@ -55,18 +55,30 @@ export function SponsorStatusChart({ sponsors }: { sponsors: Sponsor[] }) {
   );
 }
 
-export function IngresosFuenteChart({ inscripcionesTotal, sponsorsTotal }: { inscripcionesTotal: number; sponsorsTotal: number }) {
+export function IngresosFuenteChart({
+  moneda,
+  inscripcionesTotal,
+  sponsorsTotal,
+}: {
+  moneda: Moneda;
+  inscripcionesTotal: number;
+  sponsorsTotal: number;
+}) {
   const c = useChartColors();
   const total = inscripcionesTotal + sponsorsTotal;
 
   const data = [
-    { name: "Inscripciones", value: inscripcionesTotal },
-    { name: "Sponsors", value: sponsorsTotal },
+    ...(inscripcionesTotal > 0 ? [{ name: "Inscripciones", value: inscripcionesTotal }] : []),
+    ...(sponsorsTotal > 0 ? [{ name: "Sponsors", value: sponsorsTotal }] : []),
   ];
+
+  if (data.length === 0) return null;
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5">
-      <h3 className="text-slate-700 dark:text-slate-200 font-semibold text-sm mb-3">Distribución de Ingresos</h3>
+      <h3 className="text-slate-700 dark:text-slate-200 font-semibold text-sm mb-3">
+        Distribución de Ingresos <span className="text-slate-400 font-mono font-normal">({moneda})</span>
+      </h3>
       <ResponsiveContainer width="100%" height={220}>
         <PieChart>
           <Pie data={data} cx="50%" cy="42%" innerRadius={50} outerRadius={75} paddingAngle={3} dataKey="value">
@@ -78,7 +90,7 @@ export function IngresosFuenteChart({ inscripcionesTotal, sponsorsTotal }: { ins
             contentStyle={{ background: c.tooltipBg, border: `1px solid ${c.tooltipBorder}`, borderRadius: 8, fontSize: 12 }}
             labelStyle={{ color: c.tooltipTitle }}
             formatter={(value, name) => [
-              typeof value === "number" ? formatCurrency(value) : String(value),
+              typeof value === "number" ? formatCurrency(value, moneda) : String(value),
               `${name} (${total > 0 && typeof value === "number" ? ((value / total) * 100).toFixed(0) : 0}%)`,
             ]}
           />
@@ -96,11 +108,20 @@ export function IngresosFuenteChart({ inscripcionesTotal, sponsorsTotal }: { ins
   );
 }
 
-export function InscripcionesModalidadChart({ inscripciones }: { inscripciones: Inscripcion[] }) {
+export function InscripcionesModalidadChart({
+  inscripciones,
+  moneda,
+}: {
+  inscripciones: Inscripcion[];
+  moneda?: Moneda;
+}) {
   const c = useChartColors();
 
-  const presencial = inscripciones.filter((i) => i.modalidad === "Presencial").reduce((a, b) => a + b.cantidadConfirmada, 0);
-  const virtual = inscripciones.filter((i) => i.modalidad === "Virtual").reduce((a, b) => a + b.cantidadConfirmada, 0);
+  const filtered = moneda ? inscripciones.filter((i) => i.moneda === moneda) : inscripciones;
+  const presencial = filtered.filter((i) => i.modalidad === "Presencial").reduce((a, b) => a + b.cantidadConfirmada, 0);
+  const virtual = filtered.filter((i) => i.modalidad === "Virtual").reduce((a, b) => a + b.cantidadConfirmada, 0);
+
+  if (presencial === 0 && virtual === 0) return null;
 
   const data = [
     { name: "Presencial", value: presencial },
@@ -109,7 +130,10 @@ export function InscripcionesModalidadChart({ inscripciones }: { inscripciones: 
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5">
-      <h3 className="text-slate-700 dark:text-slate-200 font-semibold text-sm mb-3">Inscripciones por Modalidad</h3>
+      <h3 className="text-slate-700 dark:text-slate-200 font-semibold text-sm mb-3">
+        Inscripciones por Modalidad
+        {moneda && <span className="text-slate-400 font-mono font-normal"> ({moneda})</span>}
+      </h3>
       <ResponsiveContainer width="100%" height={220}>
         <PieChart>
           <Pie data={data} cx="50%" cy="42%" innerRadius={50} outerRadius={75} paddingAngle={3} dataKey="value">

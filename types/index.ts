@@ -1,14 +1,20 @@
+// ─── Moneda ──────────────────────────────────────────────────────────────────
+export type Moneda = "USD" | "ARS" | "EUR";
+
+export const MONEDAS: Moneda[] = ["USD", "ARS", "EUR"];
+
 // ─── Configuración General ───────────────────────────────────────────────────
 export interface EventConfig {
   nombreEvento: string;
   anio: number;
-  moneda: string;
+  moneda: Moneda;
   fechaInicio: string;
   fechaCierreInscripciones: string;
   metaPresencial: number;
   metaVirtual: number;
   metaSponsors: number;
   breakEven: number;
+  breakEvenMoneda: Moneda;
 }
 
 // ─── Sponsors ────────────────────────────────────────────────────────────────
@@ -29,6 +35,7 @@ export interface Sponsor {
   telefono: string;
   categoria: SponsorCategoria;
   estado: SponsorEstado;
+  moneda: Moneda;
   montoEstimado: number;
   montoConfirmado: number;
   probabilidad: number;
@@ -52,6 +59,7 @@ export interface Inscripcion {
   id: string;
   categoria: InscripcionCategoria;
   modalidad: InscripcionModalidad;
+  moneda: Moneda;
   precioUnitario: number;
   cantidadConfirmada: number;
   cantidadProyectada: number;
@@ -74,6 +82,7 @@ export interface Gasto {
   id: string;
   concepto: string;
   categoria: GastoCategoria;
+  moneda: Moneda;
   presupuestoEstimado: number;
   costoReal: number;
   estado: GastoEstado;
@@ -87,6 +96,7 @@ export type EscenarioTipo = "Conservador" | "Esperado" | "Optimista";
 
 export interface EscenarioConfig {
   tipo: EscenarioTipo;
+  moneda: Moneda;
   asistentesPresenciales: number;
   asistentesVirtuales: number;
   sponsorsConfirmados: number;
@@ -109,6 +119,7 @@ export interface EscenarioResultado extends EscenarioConfig {
 
 // ─── KPIs ────────────────────────────────────────────────────────────────────
 export interface KPIs {
+  moneda: Moneda;
   ingresosConfirmados: number;
   ingresosProyectados: number;
   gastosConfirmados: number;

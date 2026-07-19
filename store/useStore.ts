@@ -25,6 +25,8 @@ import {
   clearAllDataInDb,
   resetToDefaultsInDb,
 } from "@/app/actions/data";
+import { syncFinanceSummary } from "@/app/actions/finance-summary";
+import type { FinanceSummary } from "@/types/finance-summary";
 
 interface AppState {
   isHydrated: boolean;
@@ -35,6 +37,11 @@ interface AppState {
   gastos: Gasto[];
   escenarios: EscenarioConfig[];
   presentationMode: boolean;
+
+  financeSummary: FinanceSummary | null;
+  financeSummaryLoading: boolean;
+  financeSummaryError: string | null;
+  financeSummaryConfigured: boolean;
 
   hydrate: (data: {
     config: EventConfig;
@@ -66,6 +73,14 @@ interface AppState {
 
   setPresentationMode: (value: boolean) => void;
 
+  setFinanceSummary: (summary: FinanceSummary | null) => void;
+  setFinanceSummaryMeta: (meta: {
+    error?: string | null;
+    loading?: boolean;
+    configured?: boolean;
+  }) => void;
+  refreshFinanceSummary: () => Promise<void>;
+
   resetToDefaults: () => Promise<void>;
   clearAllData: () => Promise<void>;
 }
@@ -79,6 +94,10 @@ export const useStore = create<AppState>()((set, get) => ({
   gastos: mockGastos,
   escenarios: defaultEscenarios,
   presentationMode: false,
+  financeSummary: null,
+  financeSummaryLoading: false,
+  financeSummaryError: null,
+  financeSummaryConfigured: false,
 
   hydrate: (data) =>
     set({
@@ -170,6 +189,38 @@ export const useStore = create<AppState>()((set, get) => ({
   },
 
   setPresentationMode: (value) => set({ presentationMode: value }),
+
+  setFinanceSummary: (summary) => set({ financeSummary: summary }),
+
+  setFinanceSummaryMeta: (meta) =>
+    set((state) => ({
+      financeSummaryLoading:
+        meta.loading !== undefined ? meta.loading : state.financeSummaryLoading,
+      financeSummaryError:
+        meta.error !== undefined ? meta.error : state.financeSummaryError,
+      financeSummaryConfigured:
+        meta.configured !== undefined
+          ? meta.configured
+          : state.financeSummaryConfigured,
+    })),
+
+  refreshFinanceSummary: async () => {
+    set({ financeSummaryLoading: true, financeSummaryError: null });
+    try {
+      const result = await syncFinanceSummary();
+      set({
+        financeSummary: result.summary,
+        financeSummaryError: result.error ?? null,
+        financeSummaryLoading: false,
+      });
+    } catch (err) {
+      set({
+        financeSummaryLoading: false,
+        financeSummaryError:
+          err instanceof Error ? err.message : "Error al sincronizar",
+      });
+    }
+  },
 
   resetToDefaults: async () => {
     set({ isLoading: true });

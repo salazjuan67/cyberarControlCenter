@@ -4,9 +4,21 @@ import { useEffect, useState } from "react";
 import { Loader2, AlertTriangle } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import { fetchAllData } from "@/app/actions/data";
+import {
+  getFinanceSummaryStatus,
+  loadFinanceSummary,
+  syncFinanceSummary,
+} from "@/app/actions/finance-summary";
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
-  const { isHydrated, isLoading, hydrate, setLoading } = useStore();
+  const {
+    isHydrated,
+    isLoading,
+    hydrate,
+    setLoading,
+    setFinanceSummary,
+    setFinanceSummaryMeta,
+  } = useStore();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -14,15 +26,33 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
     setLoading(true);
     fetchAllData()
-      .then((data) => {
+      .then(async (data) => {
         setError(null);
         hydrate(data);
+
+        const [status, cached] = await Promise.all([
+          getFinanceSummaryStatus(),
+          loadFinanceSummary(),
+        ]);
+
+        setFinanceSummaryMeta({ configured: status.configured });
+        if (cached) setFinanceSummary(cached);
+
+        if (status.configured) {
+          setFinanceSummaryMeta({ loading: true });
+          const result = await syncFinanceSummary();
+          if (result.summary) setFinanceSummary(result.summary);
+          setFinanceSummaryMeta({
+            loading: false,
+            error: result.error ?? null,
+          });
+        }
       })
       .catch((err: Error) => {
         setLoading(false);
         setError(err.message || "Error al cargar datos desde Supabase");
       });
-  }, [isHydrated, hydrate, setLoading]);
+  }, [isHydrated, hydrate, setLoading, setFinanceSummary, setFinanceSummaryMeta]);
 
   if (!isHydrated && isLoading) {
     return (

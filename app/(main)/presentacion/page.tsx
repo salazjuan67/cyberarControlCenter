@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { X, CheckCircle2, TrendingUp, Users, Building2, Target } from "lucide-react";
 import { useStore } from "@/store/useStore";
-import { calcKPIs, calcSponsorsConfirmados, calcTotalInscripcionesProyectado, calcAsistentesPresenciales, calcAsistentesVirtuales } from "@/lib/calculations";
+import { calcKPIs, calcSponsorsConfirmados, calcTotalInscripcionesProyectado, calcAsistentesPresenciales, calcAsistentesVirtuales, getActiveMonedas } from "@/lib/calculations";
 import { formatCurrency, formatNumber, formatPercent } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/providers/ThemeProvider";
@@ -14,9 +14,17 @@ import { SponsorStatusChart, IngresosFuenteChart } from "@/components/dashboard/
 export default function PresentacionPage() {
   const { sponsors, inscripciones, gastos, config } = useStore();
   const { theme } = useTheme();
-  const kpis = calcKPIs(sponsors, inscripciones, gastos, config.breakEven);
-  const sponsorsIngresos = calcSponsorsConfirmados(sponsors);
-  const inscripcionesProyTotal = calcTotalInscripcionesProyectado(inscripciones);
+  const activeMonedas = getActiveMonedas(sponsors, inscripciones, gastos);
+  const primaryMoneda = activeMonedas[0] ?? config.moneda;
+  const kpis = calcKPIs(
+    sponsors,
+    inscripciones,
+    gastos,
+    config.breakEvenMoneda === primaryMoneda ? config.breakEven : 0,
+    primaryMoneda
+  );
+  const sponsorsIngresos = calcSponsorsConfirmados(sponsors, primaryMoneda);
+  const inscripcionesProyTotal = calcTotalInscripcionesProyectado(inscripciones, primaryMoneda);
   const presConf = calcAsistentesPresenciales(inscripciones);
   const virtConf = calcAsistentesVirtuales(inscripciones);
   const isPositive = kpis.resultadoNeto >= 0;
@@ -58,7 +66,7 @@ export default function PresentacionPage() {
           </div>
           <div className="text-right">
             <p className="text-xs text-slate-400 uppercase tracking-wider">Break Even</p>
-            <p className="text-xl font-bold text-slate-900 dark:text-white">{formatCurrency(kpis.breakEven)}</p>
+            <p className="text-xl font-bold text-slate-900 dark:text-white">{formatCurrency(kpis.breakEven, primaryMoneda)}</p>
             <p className={cn("text-sm font-semibold mt-0.5",
               kpis.avanceBreakEven >= 100 ? "text-emerald-600 dark:text-emerald-400" : kpis.avanceBreakEven >= 60 ? "text-cyan-600 dark:text-cyan-400" : "text-yellow-600 dark:text-yellow-400"
             )}>{formatPercent(kpis.avanceBreakEven, 0)} alcanzado</p>
@@ -79,16 +87,16 @@ export default function PresentacionPage() {
           </div>
           <div className="flex justify-between mt-1.5">
             <span className="text-xs text-slate-400 dark:text-slate-600">0</span>
-            <span className="text-xs text-slate-400 dark:text-slate-600">{formatCurrency(kpis.breakEven)}</span>
+            <span className="text-xs text-slate-400 dark:text-slate-600">{formatCurrency(kpis.breakEven, primaryMoneda)}</span>
           </div>
         </div>
 
         {/* Big stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-5">
           {[
-            { label: "Ingresos Proyectados", value: formatCurrency(kpis.ingresosProyectados), sub: "Confirmados + ponderados", color: "text-cyan-600 dark:text-cyan-400", icon: TrendingUp },
-            { label: "Gastos Proyectados", value: formatCurrency(kpis.gastosProyectados), sub: "Presupuesto total", color: "text-slate-700 dark:text-slate-300", icon: Target },
-            { label: "Resultado Neto", value: (isPositive ? "+" : "") + formatCurrency(kpis.resultadoNeto), sub: isPositive ? "Superávit proyectado" : "Déficit proyectado",
+            { label: "Ingresos Proyectados", value: formatCurrency(kpis.ingresosProyectados, primaryMoneda), sub: "Confirmados + ponderados", color: "text-cyan-600 dark:text-cyan-400", icon: TrendingUp },
+            { label: "Gastos Proyectados", value: formatCurrency(kpis.gastosProyectados, primaryMoneda), sub: "Presupuesto total", color: "text-slate-700 dark:text-slate-300", icon: Target },
+            { label: "Resultado Neto", value: (isPositive ? "+" : "") + formatCurrency(kpis.resultadoNeto, primaryMoneda), sub: isPositive ? "Superávit proyectado" : "Déficit proyectado",
               color: isPositive ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400", icon: CheckCircle2 },
           ].map((s) => (
             <div key={s.label} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 md:p-6">
@@ -105,7 +113,7 @@ export default function PresentacionPage() {
         {/* Status row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           {[
-            { label: "Sponsors Confirmados", value: String(kpis.sponsorsConfirmados), sub: formatCurrency(sponsorsIngresos), icon: Building2, color: "text-purple-600 dark:text-purple-400" },
+            { label: "Sponsors Confirmados", value: String(kpis.sponsorsConfirmados), sub: formatCurrency(sponsorsIngresos, primaryMoneda), icon: Building2, color: "text-purple-600 dark:text-purple-400" },
             { label: "En Negociación", value: String(kpis.sponsorsNegociacion), sub: "Sponsors activos", icon: Building2, color: "text-yellow-600 dark:text-yellow-400" },
             { label: "Asist. Presenciales", value: formatNumber(presConf), sub: `Meta: ${formatNumber(config.metaPresencial)}`, icon: Users, color: "text-cyan-600 dark:text-cyan-400" },
             { label: "Asist. Virtuales", value: formatNumber(virtConf), sub: `Meta: ${formatNumber(config.metaVirtual)}`, icon: Users, color: "text-blue-600 dark:text-blue-400" },
@@ -123,10 +131,13 @@ export default function PresentacionPage() {
 
         {/* Charts */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
-          <RevenueChart ingresosConfirmados={kpis.ingresosConfirmados} ingresosProyectados={kpis.ingresosProyectados}
+          <RevenueChart moneda={primaryMoneda}
+            ingresosConfirmados={kpis.ingresosConfirmados} ingresosProyectados={kpis.ingresosProyectados}
             gastosConfirmados={kpis.gastosConfirmados} gastosProyectados={kpis.gastosProyectados} />
-          <IngresosFuenteChart inscripcionesTotal={inscripcionesProyTotal} sponsorsTotal={kpis.ingresosProyectados - inscripcionesProyTotal} />
-          <SponsorStatusChart sponsors={sponsors} />
+          <IngresosFuenteChart moneda={primaryMoneda}
+            inscripcionesTotal={inscripcionesProyTotal}
+            sponsorsTotal={Math.max(0, kpis.ingresosProyectados - inscripcionesProyTotal)} />
+          <SponsorStatusChart sponsors={sponsors.filter((s) => s.moneda === primaryMoneda)} />
         </div>
 
         {/* Executive note */}
@@ -142,9 +153,9 @@ export default function PresentacionPage() {
             <span className={cn("font-semibold", isPositive ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400")}>
               {isPositive ? "positivo" : "negativo"}
             </span>{" "}
-            de <strong className="text-slate-900 dark:text-white">{formatCurrency(Math.abs(kpis.resultadoNeto))}</strong>,
+            de <strong className="text-slate-900 dark:text-white">{formatCurrency(Math.abs(kpis.resultadoNeto), primaryMoneda)}</strong>,
             con un avance del <strong className="text-cyan-600 dark:text-cyan-400">{formatPercent(kpis.avanceBreakEven, 0)}</strong>{" "}
-            sobre el punto de equilibrio de <strong className="text-slate-900 dark:text-white">{formatCurrency(kpis.breakEven)}</strong>.
+            sobre el punto de equilibrio de <strong className="text-slate-900 dark:text-white">{formatCurrency(kpis.breakEven, primaryMoneda)}</strong>.
             El evento cuenta con <strong className="text-slate-900 dark:text-white">{kpis.sponsorsConfirmados} sponsors confirmados</strong>{" "}
             y <strong className="text-slate-900 dark:text-white">{kpis.sponsorsNegociacion} en negociación activa</strong>.
           </p>

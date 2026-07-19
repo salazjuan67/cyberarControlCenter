@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { Plus, Building2, DollarSign, TrendingUp, Filter, Search } from "lucide-react";
 import { useStore } from "@/store/useStore";
-import { calcSponsorsConfirmados, calcSponsorsPotencial, calcSponsorsPonderado } from "@/lib/calculations";
-import { formatCurrency } from "@/lib/formatters";
+import { calcSponsorsConfirmados, calcSponsorsPotencial, calcSponsorsPonderado, getActiveMonedas } from "@/lib/calculations";
+import { formatCurrency, formatTotalsByMoneda, sumByMoneda } from "@/lib/formatters";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,16 +13,16 @@ import { KPICard } from "@/components/dashboard/KPICard";
 import { SponsorTable } from "@/components/sponsors/SponsorTable";
 import { SponsorDialog } from "@/components/sponsors/SponsorDialog";
 import { SponsorPipeline } from "@/components/sponsors/SponsorPipeline";
-import type { Sponsor, SponsorCategoria, SponsorEstado } from "@/types";
+import type { Sponsor, SponsorCategoria, SponsorEstado, Moneda } from "@/types";
 
-const EMPTY: Omit<Sponsor, "id"> = {
+const EMPTY_BASE: Omit<Sponsor, "id" | "moneda"> = {
   empresa: "", contacto: "", email: "", telefono: "", categoria: "Plata", estado: "Lead",
   montoEstimado: 1500, montoConfirmado: 0, probabilidad: 25, responsable: "",
   ultimoContacto: new Date().toISOString().split("T")[0], proximaAccion: "", notas: "",
 };
 
 export default function SponsorsPage() {
-  const { sponsors, addSponsor, updateSponsor, deleteSponsor } = useStore();
+  const { sponsors, addSponsor, updateSponsor, deleteSponsor, config } = useStore();
   const [search, setSearch] = useState("");
   const [filterEstado, setFilterEstado] = useState<SponsorEstado | "Todos">("Todos");
   const [filterCategoria, setFilterCategoria] = useState<SponsorCategoria | "Todas">("Todas");
@@ -30,9 +30,26 @@ export default function SponsorsPage() {
   const [editingSponsor, setEditingSponsor] = useState<Sponsor | null>(null);
   const [view, setView] = useState<"tabla" | "pipeline">("tabla");
 
-  const totalConfirmado = calcSponsorsConfirmados(sponsors);
-  const totalPotencial = calcSponsorsPotencial(sponsors);
-  const totalPonderado = calcSponsorsPonderado(sponsors);
+  const activeMonedas = getActiveMonedas(sponsors, [], []);
+  const confirmadoByMoneda = sumByMoneda(
+    sponsors.filter((s) => s.estado === "Confirmado"),
+    (s) => s.montoConfirmado
+  );
+  const potencialByMoneda = sumByMoneda(
+    sponsors.filter((s) => s.estado !== "Perdido" && s.estado !== "Confirmado"),
+    (s) => s.montoEstimado
+  );
+
+  function emptySponsor(): Omit<Sponsor, "id"> {
+    return { ...EMPTY_BASE, moneda: config.moneda };
+  }
+
+  function formatKpiByMoneda(
+    calc: (moneda: Moneda) => number
+  ): string {
+    if (activeMonedas.length === 0) return formatCurrency(0, config.moneda);
+    return activeMonedas.map((m) => formatCurrency(calc(m), m)).join(" · ");
+  }
   const confirmados = sponsors.filter((s) => s.estado === "Confirmado").length;
 
   const filtered = sponsors.filter((s) => {
@@ -65,10 +82,10 @@ export default function SponsorsPage() {
       />
       <div className="p-4 md:p-6 space-y-4 md:space-y-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-          <KPICard title="Total Confirmado" value={formatCurrency(totalConfirmado)} subtitle={`${confirmados} sponsors activos`} icon={DollarSign} accent="emerald" />
-          <KPICard title="Total Potencial" value={formatCurrency(totalPotencial)} subtitle="Sponsors no confirmados" icon={Building2} accent="yellow" />
-          <KPICard title="Total Ponderado" value={formatCurrency(totalPonderado)} subtitle="Ajustado por probabilidad" icon={TrendingUp} accent="cyan" />
-          <KPICard title="Pipeline Total" value={formatCurrency(totalConfirmado + totalPotencial)} subtitle="Confirmado + Potencial" icon={Building2} accent="purple" />
+          <KPICard title="Total Confirmado" value={formatTotalsByMoneda(confirmadoByMoneda) || formatCurrency(0, config.moneda)} subtitle={`${confirmados} sponsors activos`} icon={DollarSign} accent="emerald" />
+          <KPICard title="Total Potencial" value={formatTotalsByMoneda(potencialByMoneda) || formatCurrency(0, config.moneda)} subtitle="Sponsors no confirmados" icon={Building2} accent="yellow" />
+          <KPICard title="Total Ponderado" value={formatKpiByMoneda((m) => calcSponsorsPonderado(sponsors, m))} subtitle="Ajustado por probabilidad" icon={TrendingUp} accent="cyan" />
+          <KPICard title="Pipeline Total" value={formatKpiByMoneda((m) => calcSponsorsConfirmados(sponsors, m) + calcSponsorsPotencial(sponsors, m))} subtitle="Confirmado + Potencial" icon={Building2} accent="purple" />
         </div>
 
         <div className="flex flex-wrap items-center gap-2 md:gap-3">
@@ -102,7 +119,7 @@ export default function SponsorsPage() {
           : <SponsorPipeline sponsors={filtered} onEdit={(s) => { setEditingSponsor(s); setDialogOpen(true); }} />
         }
       </div>
-      <SponsorDialog open={dialogOpen} onOpenChange={setDialogOpen} initial={editingSponsor || undefined} defaultValues={EMPTY} onSave={handleSave} />
+      <SponsorDialog open={dialogOpen} onOpenChange={setDialogOpen} initial={editingSponsor || undefined} defaultValues={emptySponsor()} onSave={handleSave} />
     </div>
   );
 }

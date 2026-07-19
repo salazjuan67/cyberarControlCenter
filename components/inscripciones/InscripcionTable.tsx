@@ -2,7 +2,7 @@
 
 import { Pencil, Trash2 } from "lucide-react";
 import type { Inscripcion } from "@/types";
-import { formatCurrency, formatNumber } from "@/lib/formatters";
+import { formatCurrency, formatNumber, formatTotalsByMoneda, sumByMoneda } from "@/lib/formatters";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -28,10 +28,10 @@ interface InscripcionTableProps {
 }
 
 export function InscripcionTable({ inscripciones, onEdit, onDelete }: InscripcionTableProps) {
-  const totalConf = inscripciones.reduce((a, i) => a + i.precioUnitario * i.cantidadConfirmada, 0);
-  const totalProy = inscripciones.reduce((a, i) => a + i.precioUnitario * i.cantidadProyectada, 0);
   const totalAConf = inscripciones.reduce((a, i) => a + i.cantidadConfirmada, 0);
   const totalAProy = inscripciones.reduce((a, i) => a + i.cantidadProyectada, 0);
+  const confByMoneda = sumByMoneda(inscripciones, (i) => i.precioUnitario * i.cantidadConfirmada);
+  const proyByMoneda = sumByMoneda(inscripciones, (i) => i.precioUnitario * i.cantidadProyectada);
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
@@ -54,15 +54,15 @@ export function InscripcionTable({ inscripciones, onEdit, onDelete }: Inscripcio
                   <Badge variant="outline" className={cn("text-xs", MODAL_COLORS[i.modalidad])}>{i.modalidad}</Badge>
                 </td>
                 <td className="px-4 py-3 text-right text-slate-600 dark:text-slate-300">
-                  {i.precioUnitario > 0 ? formatCurrency(i.precioUnitario) : <span className="text-slate-400 dark:text-slate-600">Gratis</span>}
+                  {i.precioUnitario > 0 ? formatCurrency(i.precioUnitario, i.moneda) : <span className="text-slate-400 dark:text-slate-600">Gratis</span>}
                 </td>
                 <td className="px-4 py-3 text-right text-slate-900 dark:text-white font-semibold">{formatNumber(i.cantidadConfirmada)}</td>
                 <td className="px-4 py-3 text-right text-slate-500 dark:text-slate-400">{formatNumber(i.cantidadProyectada)}</td>
                 <td className="px-4 py-3 text-right text-emerald-600 dark:text-emerald-400 font-medium">
-                  {i.precioUnitario > 0 ? formatCurrency(i.precioUnitario * i.cantidadConfirmada) : "—"}
+                  {i.precioUnitario > 0 ? formatCurrency(i.precioUnitario * i.cantidadConfirmada, i.moneda) : "—"}
                 </td>
                 <td className="px-4 py-3 text-right text-cyan-600 dark:text-cyan-400">
-                  {i.precioUnitario > 0 ? formatCurrency(i.precioUnitario * i.cantidadProyectada) : "—"}
+                  {i.precioUnitario > 0 ? formatCurrency(i.precioUnitario * i.cantidadProyectada, i.moneda) : "—"}
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -84,8 +84,8 @@ export function InscripcionTable({ inscripciones, onEdit, onDelete }: Inscripcio
               <td className="px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase" colSpan={3}>Total</td>
               <td className="px-4 py-3 text-right text-sm font-bold text-slate-900 dark:text-white">{formatNumber(totalAConf)}</td>
               <td className="px-4 py-3 text-right text-sm font-bold text-slate-600 dark:text-slate-300">{formatNumber(totalAProy)}</td>
-              <td className="px-4 py-3 text-right text-sm font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(totalConf)}</td>
-              <td className="px-4 py-3 text-right text-sm font-bold text-cyan-600 dark:text-cyan-400">{formatCurrency(totalProy)}</td>
+              <td className="px-4 py-3 text-right text-sm font-bold text-emerald-600 dark:text-emerald-400">{formatTotalsByMoneda(confByMoneda)}</td>
+              <td className="px-4 py-3 text-right text-sm font-bold text-cyan-600 dark:text-cyan-400">{formatTotalsByMoneda(proyByMoneda)}</td>
               <td></td>
             </tr>
           </tfoot>

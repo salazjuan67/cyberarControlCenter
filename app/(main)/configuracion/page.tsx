@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Save, RotateCcw, Settings, Shield, Trash2, TriangleAlert } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import { formatCurrency, formatDate } from "@/lib/formatters";
@@ -16,7 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import type { EventConfig } from "@/types";
+import type { EventConfig, Moneda } from "@/types";
 
 const inputCls = "bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-200";
 const selectContentCls = "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700";
@@ -31,6 +31,10 @@ export default function ConfiguracionPage() {
 
   const [clearing, setClearing] = useState(false);
   const [resetting, setResetting] = useState(false);
+
+  useEffect(() => {
+    setForm({ ...config });
+  }, [config]);
 
   function handleSave() { setConfig(form); setSaved(true); setTimeout(() => setSaved(false), 2000); }
   function set(field: keyof EventConfig, value: string | number) { setForm((p) => ({ ...p, [field]: value })); }
@@ -70,8 +74,8 @@ export default function ConfiguracionPage() {
               <Input type="number" value={form.anio} onChange={(e) => set("anio", +e.target.value)} className={inputCls} />
             </div>
             <div>
-              <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">Moneda Principal</label>
-              <Select value={form.moneda} onValueChange={(v) => v && set("moneda", v)}>
+              <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">Moneda por defecto</label>
+              <Select value={form.moneda} onValueChange={(v) => v && set("moneda", v as Moneda)}>
                 <SelectTrigger className={inputCls}><SelectValue /></SelectTrigger>
                 <SelectContent className={selectContentCls}>
                   {["USD","ARS","EUR"].map((c) => <SelectItem key={c} value={c} className={selectItemCls}>{c}</SelectItem>)}
@@ -108,8 +112,17 @@ export default function ConfiguracionPage() {
               <Input type="number" value={form.metaSponsors} onChange={(e) => set("metaSponsors", +e.target.value)} className={inputCls} />
             </div>
             <div>
-              <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">Break Even ({form.moneda})</label>
+              <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">Break Even</label>
               <Input type="number" value={form.breakEven} onChange={(e) => set("breakEven", +e.target.value)} className={inputCls} />
+            </div>
+            <div>
+              <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">Moneda Break Even</label>
+              <Select value={form.breakEvenMoneda} onValueChange={(v) => v && set("breakEvenMoneda", v as Moneda)}>
+                <SelectTrigger className={inputCls}><SelectValue /></SelectTrigger>
+                <SelectContent className={selectContentCls}>
+                  {["USD","ARS","EUR"].map((c) => <SelectItem key={c} value={c} className={selectItemCls}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </div>
@@ -121,7 +134,7 @@ export default function ConfiguracionPage() {
               { label: "Evento", value: config.nombreEvento },
               { label: "Año", value: String(config.anio) },
               { label: "Moneda", value: config.moneda },
-              { label: "Break Even", value: formatCurrency(config.breakEven, config.moneda) },
+              { label: "Break Even", value: formatCurrency(config.breakEven, config.breakEvenMoneda) },
               { label: "Inicio", value: formatDate(config.fechaInicio) },
               { label: "Cierre inscr.", value: formatDate(config.fechaCierreInscripciones) },
               { label: "Meta presencial", value: String(config.metaPresencial) + " asist." },

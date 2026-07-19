@@ -42,7 +42,7 @@ export function ExecutiveSummary({ kpis, eventoNombre }: ExecutiveSummaryProps) 
           <div className={cn("h-2 rounded-full transition-all duration-500", progressColor)}
             style={{ width: `${Math.min(kpis.avanceBreakEven, 100)}%` }} />
         </div>
-        <p className="text-xs text-slate-400 dark:text-slate-600 mt-1">Meta: {formatCurrency(kpis.breakEven)}</p>
+        <p className="text-xs text-slate-400 dark:text-slate-600 mt-1">Meta: {formatCurrency(kpis.breakEven, kpis.moneda)}</p>
       </div>
 
       {/* Summary text */}
@@ -54,7 +54,7 @@ export function ExecutiveSummary({ kpis, eventoNombre }: ExecutiveSummaryProps) 
             {isPositive ? "positivo" : "negativo"}
           </span>{" "}
           proyectado de{" "}
-          <span className="font-semibold text-slate-900 dark:text-white">{formatCurrency(Math.abs(kpis.resultadoNeto))}</span>,
+          <span className="font-semibold text-slate-900 dark:text-white">{formatCurrency(Math.abs(kpis.resultadoNeto), kpis.moneda)}</span>,
           con un avance del{" "}
           <span className="font-semibold text-cyan-600 dark:text-cyan-400">{formatPercent(kpis.avanceBreakEven, 0)}</span>{" "}
           sobre el punto de equilibrio.{" "}
@@ -75,11 +75,11 @@ export function ExecutiveSummary({ kpis, eventoNombre }: ExecutiveSummaryProps) 
       <div className="grid grid-cols-2 gap-2 mt-3">
         <div className="bg-slate-50 dark:bg-slate-800/40 rounded-lg p-2.5 border border-slate-100 dark:border-slate-700/30">
           <p className="text-xs text-slate-500">Ingresos confirmados</p>
-          <p className="text-sm font-semibold text-slate-900 dark:text-white mt-0.5">{formatCurrency(kpis.ingresosConfirmados)}</p>
+          <p className="text-sm font-semibold text-slate-900 dark:text-white mt-0.5">{formatCurrency(kpis.ingresosConfirmados, kpis.moneda)}</p>
         </div>
         <div className="bg-slate-50 dark:bg-slate-800/40 rounded-lg p-2.5 border border-slate-100 dark:border-slate-700/30">
           <p className="text-xs text-slate-500">Gastos proyectados</p>
-          <p className="text-sm font-semibold text-slate-900 dark:text-white mt-0.5">{formatCurrency(kpis.gastosProyectados)}</p>
+          <p className="text-sm font-semibold text-slate-900 dark:text-white mt-0.5">{formatCurrency(kpis.gastosProyectados, kpis.moneda)}</p>
         </div>
       </div>
     </div>

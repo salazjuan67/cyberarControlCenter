@@ -4,19 +4,26 @@ import type {
   Inscripcion,
   Gasto,
   EscenarioConfig,
+  Moneda,
 } from "@/types";
+
+function asMoneda(value: unknown): Moneda {
+  if (value === "USD" || value === "ARS" || value === "EUR") return value;
+  return "USD";
+}
 
 export function mapConfig(row: Record<string, unknown>): EventConfig {
   return {
     nombreEvento: row.nombre_evento as string,
     anio: row.anio as number,
-    moneda: row.moneda as string,
+    moneda: asMoneda(row.moneda),
     fechaInicio: row.fecha_inicio as string,
     fechaCierreInscripciones: row.fecha_cierre_inscripciones as string,
     metaPresencial: row.meta_presencial as number,
     metaVirtual: row.meta_virtual as number,
     metaSponsors: row.meta_sponsors as number,
     breakEven: Number(row.break_even),
+    breakEvenMoneda: asMoneda(row.break_even_moneda ?? row.moneda),
   };
 }
 
@@ -32,6 +39,7 @@ export function configToRow(config: EventConfig) {
     meta_virtual: config.metaVirtual,
     meta_sponsors: config.metaSponsors,
     break_even: config.breakEven,
+    break_even_moneda: config.breakEvenMoneda,
   };
 }
 
@@ -44,6 +52,7 @@ export function mapSponsor(row: Record<string, unknown>): Sponsor {
     telefono: (row.telefono as string) ?? "",
     categoria: row.categoria as Sponsor["categoria"],
     estado: row.estado as Sponsor["estado"],
+    moneda: asMoneda(row.moneda),
     montoEstimado: Number(row.monto_estimado),
     montoConfirmado: Number(row.monto_confirmado),
     probabilidad: row.probabilidad as number,
@@ -63,6 +72,7 @@ export function sponsorToRow(s: Sponsor) {
     telefono: s.telefono,
     categoria: s.categoria,
     estado: s.estado,
+    moneda: s.moneda,
     monto_estimado: s.montoEstimado,
     monto_confirmado: s.montoConfirmado,
     probabilidad: s.probabilidad,
@@ -78,6 +88,7 @@ export function mapInscripcion(row: Record<string, unknown>): Inscripcion {
     id: row.id as string,
     categoria: row.categoria as Inscripcion["categoria"],
     modalidad: row.modalidad as Inscripcion["modalidad"],
+    moneda: asMoneda(row.moneda),
     precioUnitario: Number(row.precio_unitario),
     cantidadConfirmada: row.cantidad_confirmada as number,
     cantidadProyectada: row.cantidad_proyectada as number,
@@ -89,6 +100,7 @@ export function inscripcionToRow(i: Inscripcion) {
     id: i.id,
     categoria: i.categoria,
     modalidad: i.modalidad,
+    moneda: i.moneda,
     precio_unitario: i.precioUnitario,
     cantidad_confirmada: i.cantidadConfirmada,
     cantidad_proyectada: i.cantidadProyectada,
@@ -100,6 +112,7 @@ export function mapGasto(row: Record<string, unknown>): Gasto {
     id: row.id as string,
     concepto: row.concepto as string,
     categoria: row.categoria as Gasto["categoria"],
+    moneda: asMoneda(row.moneda),
     presupuestoEstimado: Number(row.presupuesto_estimado),
     costoReal: Number(row.costo_real),
     estado: row.estado as Gasto["estado"],
@@ -114,6 +127,7 @@ export function gastoToRow(g: Gasto) {
     id: g.id,
     concepto: g.concepto,
     categoria: g.categoria,
+    moneda: g.moneda,
     presupuesto_estimado: g.presupuestoEstimado,
     costo_real: g.costoReal,
     estado: g.estado,
@@ -126,6 +140,7 @@ export function gastoToRow(g: Gasto) {
 export function mapEscenario(row: Record<string, unknown>): EscenarioConfig {
   return {
     tipo: row.tipo as EscenarioConfig["tipo"],
+    moneda: asMoneda(row.moneda),
     asistentesPresenciales: row.asistentes_presenciales as number,
     asistentesVirtuales: row.asistentes_virtuales as number,
     sponsorsConfirmados: Number(row.sponsors_confirmados),
@@ -140,6 +155,7 @@ export function mapEscenario(row: Record<string, unknown>): EscenarioConfig {
 export function escenarioToRow(e: EscenarioConfig) {
   return {
     tipo: e.tipo,
+    moneda: e.moneda,
     asistentes_presenciales: e.asistentesPresenciales,
     asistentes_virtuales: e.asistentesVirtuales,
     sponsors_confirmados: e.sponsorsConfirmados,

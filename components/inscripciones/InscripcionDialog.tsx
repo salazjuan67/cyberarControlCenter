@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Inscripcion, InscripcionCategoria, InscripcionModalidad } from "@/types";
+import { MonedaSelect } from "@/components/shared/MonedaSelect";
 
 const inputCls = "bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-200";
 const selectContentCls = "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700";
@@ -53,7 +54,15 @@ export function InscripcionDialog({ open, onOpenChange, initial, defaultValues, 
             </Select>
           </div>
           <div className="col-span-2">
-            <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">Precio Unitario (USD)</label>
+            <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">Moneda</label>
+            <MonedaSelect
+              value={form.moneda}
+              onChange={(v) => set("moneda", v)}
+              className={inputCls}
+            />
+          </div>
+          <div className="col-span-2">
+            <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">Precio Unitario</label>
             <Input type="number" value={form.precioUnitario} onChange={(e) => set("precioUnitario", +e.target.value)} className={inputCls} />
           </div>
           <div>

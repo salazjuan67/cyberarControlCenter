@@ -1,7 +1,7 @@
 "use client";
 
 import type { Sponsor, SponsorEstado } from "@/types";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency, formatTotalsByMoneda, sumByMoneda } from "@/lib/formatters";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Pencil } from "lucide-react";
@@ -36,7 +36,8 @@ export function SponsorPipeline({ sponsors, onEdit }: { sponsors: Sponsor[]; onE
     <div className="flex gap-3 overflow-x-auto pb-2">
       {STAGES.map((stage) => {
         const items = byStage[stage];
-        const total = items.reduce((a, s) => a + (s.montoConfirmado > 0 ? s.montoConfirmado : s.montoEstimado), 0);
+        const totalsByMoneda = sumByMoneda(items, (s) => s.montoConfirmado > 0 ? s.montoConfirmado : s.montoEstimado);
+        const totalLabel = formatTotalsByMoneda(totalsByMoneda);
         const st = STAGE_STYLES[stage];
         return (
           <div key={stage} className="flex-shrink-0 w-56">
@@ -44,7 +45,7 @@ export function SponsorPipeline({ sponsors, onEdit }: { sponsors: Sponsor[]; onE
               <span className={cn("text-xs font-semibold uppercase tracking-wider", st.header)}>{stage}</span>
               <span className="text-xs text-slate-400 dark:text-slate-500">{items.length}</span>
             </div>
-            {total > 0 && <p className="text-xs text-slate-400 dark:text-slate-600 mb-2 px-1">{formatCurrency(total)}</p>}
+            {totalLabel !== "—" && <p className="text-xs text-slate-400 dark:text-slate-600 mb-2 px-1">{totalLabel}</p>}
             <div className="space-y-2 min-h-24">
               {items.map((s) => (
                 <div key={s.id}
@@ -60,7 +61,7 @@ export function SponsorPipeline({ sponsors, onEdit }: { sponsors: Sponsor[]; onE
                     </Button>
                   </div>
                   <Badge variant="outline" className={cn("text-xs mt-1.5 px-1.5 py-0", CAT_COLORS[s.categoria])}>{s.categoria}</Badge>
-                  {s.montoEstimado > 0 && <p className="text-slate-500 dark:text-slate-400 text-xs mt-1.5">{formatCurrency(s.montoEstimado)}</p>}
+                  {s.montoEstimado > 0 && <p className="text-slate-500 dark:text-slate-400 text-xs mt-1.5">{formatCurrency(s.montoEstimado, s.moneda)}</p>}
                   {s.proximaAccion && <p className="text-slate-400 dark:text-slate-600 text-xs mt-1 leading-tight truncate">{s.proximaAccion}</p>}
                 </div>
               ))}

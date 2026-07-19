@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import type { EscenarioResultado, EscenarioConfig } from "@/types";
 import { formatCurrency, formatPercent } from "@/lib/formatters";
+import { MonedaSelect } from "@/components/shared/MonedaSelect";
 import { cn } from "@/lib/utils";
 
 const STYLES: Record<string, { border: string; tag: string; accent: string; valueBg: string }> = {
@@ -37,16 +38,23 @@ export function ScenarioCard({ result, expectedResult, onUpdate }: ScenarioCardP
   const [expanded, setExpanded] = useState(false);
   const st = STYLES[result.tipo];
   const isPositive = result.resultadoNeto >= 0;
-  const diffVsExpected = result.resultadoNeto - expectedResult.resultadoNeto;
+  const sameMoneda = result.moneda === expectedResult.moneda;
+  const diffVsExpected = sameMoneda
+    ? result.resultadoNeto - expectedResult.resultadoNeto
+    : 0;
   const isExpected = result.tipo === "Esperado";
+  const moneda = result.moneda;
 
   return (
     <div className={cn("bg-white dark:bg-slate-900 rounded-xl border p-5 flex flex-col gap-4", st.border)}>
       <div className="flex items-center justify-between">
-        <span className={cn("text-xs font-semibold px-2 py-0.5 rounded border", st.tag)}>{result.tipo}</span>
-        {!isExpected && (
+        <div className="flex items-center gap-2">
+          <span className={cn("text-xs font-semibold px-2 py-0.5 rounded border", st.tag)}>{result.tipo}</span>
+          <span className="text-xs text-slate-400 dark:text-slate-500 font-mono">{moneda}</span>
+        </div>
+        {!isExpected && sameMoneda && (
           <span className={cn("text-xs", diffVsExpected > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400")}>
-            {diffVsExpected > 0 ? "+" : ""}{formatCurrency(diffVsExpected)} vs Esp.
+            {diffVsExpected > 0 ? "+" : ""}{formatCurrency(diffVsExpected, moneda)} vs Esp.
           </span>
         )}
       </div>
@@ -54,7 +62,7 @@ export function ScenarioCard({ result, expectedResult, onUpdate }: ScenarioCardP
       <div>
         <p className="text-xs text-slate-500 mb-0.5">Resultado Neto</p>
         <p className={cn("text-2xl font-bold", isPositive ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400")}>
-          {isPositive ? "+" : ""}{formatCurrency(result.resultadoNeto)}
+          {isPositive ? "+" : ""}{formatCurrency(result.resultadoNeto, moneda)}
         </p>
         <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
           Margen: <span className={cn(st.accent, "font-medium")}>{formatPercent(result.margen, 1)}</span>
@@ -63,8 +71,8 @@ export function ScenarioCard({ result, expectedResult, onUpdate }: ScenarioCardP
 
       <div className="grid grid-cols-2 gap-2">
         {[
-          { label: "Ingresos", value: formatCurrency(result.ingresosTotales) },
-          { label: "Egresos", value: formatCurrency(result.egresosTotales) },
+          { label: "Ingresos", value: formatCurrency(result.ingresosTotales, moneda) },
+          { label: "Egresos", value: formatCurrency(result.egresosTotales, moneda) },
           { label: "Asist. Pres.", value: String(result.asistentesPresenciales) },
           { label: "Asist. Virt.", value: String(result.asistentesVirtuales) },
           { label: "Sponsors", value: String(result.sponsorsConfirmados + result.sponsorsPotenciales) },
@@ -87,21 +95,30 @@ export function ScenarioCard({ result, expectedResult, onUpdate }: ScenarioCardP
 
       {expanded && (
         <div className="space-y-3 border-t border-slate-100 dark:border-slate-800 pt-3">
+          <div>
+            <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">Moneda del escenario</label>
+            <MonedaSelect
+              value={result.moneda}
+              onChange={(v) => onUpdate({ moneda: v })}
+              className="bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-200"
+            />
+          </div>
           {[
-            { label: "Asistentes Presenciales", field: "asistentesPresenciales" as const, max: 1000, step: 10 },
-            { label: "Asistentes Virtuales", field: "asistentesVirtuales" as const, max: 2000, step: 25 },
-            { label: "Sponsors Confirmados", field: "sponsorsConfirmados" as const, max: 20, step: 1 },
-            { label: "Sponsors Potenciales", field: "sponsorsPotenciales" as const, max: 20, step: 1 },
-            { label: "Precio Prom. Presencial", field: "precioPromPresencial" as const, max: 300, step: 5 },
-            { label: "Precio Prom. Virtual", field: "precioPromVirtual" as const, max: 150, step: 5 },
-            { label: "Monto Prom. Sponsor", field: "montoPromSponsor" as const, max: 10000, step: 100 },
+            { label: "Asistentes Presenciales", field: "asistentesPresenciales" as const, max: 1000, step: 10, isMoney: false },
+            { label: "Asistentes Virtuales", field: "asistentesVirtuales" as const, max: 2000, step: 25, isMoney: false },
+            { label: "Sponsors Confirmados", field: "sponsorsConfirmados" as const, max: 20, step: 1, isMoney: false },
+            { label: "Sponsors Potenciales", field: "sponsorsPotenciales" as const, max: 20, step: 1, isMoney: false },
+            { label: "Gastos Estimados", field: "gastosEstimados" as const, max: 100000, step: 500, isMoney: true },
+            { label: "Precio Prom. Presencial", field: "precioPromPresencial" as const, max: 300, step: 5, isMoney: true },
+            { label: "Precio Prom. Virtual", field: "precioPromVirtual" as const, max: 150, step: 5, isMoney: true },
+            { label: "Monto Prom. Sponsor", field: "montoPromSponsor" as const, max: 10000, step: 100, isMoney: true },
           ].map((item) => (
             <div key={item.field}>
               <div className="flex items-center justify-between mb-1">
                 <label className="text-xs text-slate-500 dark:text-slate-400">{item.label}</label>
                 <span className={cn("text-xs font-semibold", st.accent)}>
-                  {item.field.toLowerCase().includes("precio") || item.field.toLowerCase().includes("monto")
-                    ? formatCurrency(result[item.field])
+                  {item.isMoney
+                    ? formatCurrency(result[item.field], moneda)
                     : result[item.field]}
                 </span>
               </div>

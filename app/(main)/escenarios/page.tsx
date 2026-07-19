@@ -31,7 +31,7 @@ export default function EscenariosPage() {
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs text-slate-500 dark:text-slate-400">{r.tipo}</span>
                     <span className={cn("text-sm font-bold", isPositive ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400")}>
-                      {isPositive ? "+" : ""}{formatCurrency(r.resultadoNeto)}
+                      {isPositive ? "+" : ""}{formatCurrency(r.resultadoNeto, r.moneda)}
                     </span>
                   </div>
                   <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2">

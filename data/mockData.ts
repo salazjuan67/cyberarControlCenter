@@ -16,6 +16,7 @@ export const defaultConfig: EventConfig = {
   metaVirtual: 500,
   metaSponsors: 15,
   breakEven: 45000,
+  breakEvenMoneda: "USD",
 };
 
 export const mockSponsors: Sponsor[] = [
@@ -34,6 +35,7 @@ export const mockSponsors: Sponsor[] = [
     ultimoContacto: "2026-06-01",
     proximaAccion: "Envío de logo para materiales",
     notas: "Sponsor histórico. Requiere mención en apertura.",
+    moneda: "USD",
   },
   {
     id: "s2",
@@ -50,6 +52,7 @@ export const mockSponsors: Sponsor[] = [
     ultimoContacto: "2026-06-10",
     proximaAccion: "Reunión virtual el 20/06",
     notas: "Interesados en stand virtual y menciones en redes.",
+    moneda: "USD",
   },
   {
     id: "s3",
@@ -66,6 +69,7 @@ export const mockSponsors: Sponsor[] = [
     ultimoContacto: "2026-06-05",
     proximaAccion: "Seguimiento al 22/06",
     notas: "Propuesta enviada el 5/6. Esperando aprobación interna.",
+    moneda: "USD",
   },
   {
     id: "s4",
@@ -82,6 +86,7 @@ export const mockSponsors: Sponsor[] = [
     ultimoContacto: "2026-05-28",
     proximaAccion: "Coordinación de charla técnica",
     notas: "Incluye speaker técnico en el programa.",
+    moneda: "USD",
   },
   {
     id: "s5",
@@ -98,6 +103,7 @@ export const mockSponsors: Sponsor[] = [
     ultimoContacto: "2026-06-12",
     proximaAccion: "Confirmación de autoridades asistentes",
     notas: "Apoyo institucional. No aporta monetariamente.",
+    moneda: "USD",
   },
   {
     id: "s6",
@@ -114,6 +120,7 @@ export const mockSponsors: Sponsor[] = [
     ultimoContacto: "2026-06-08",
     proximaAccion: "Envío de propuesta formal",
     notas: "Primer contacto realizado. Mostraron interés inicial.",
+    moneda: "USD",
   },
   {
     id: "s7",
@@ -130,6 +137,7 @@ export const mockSponsors: Sponsor[] = [
     ultimoContacto: "2026-06-15",
     proximaAccion: "Primer llamado el 25/06",
     notas: "Referido por contacto de Cisco.",
+    moneda: "USD",
   },
   {
     id: "s8",
@@ -146,6 +154,7 @@ export const mockSponsors: Sponsor[] = [
     ultimoContacto: "2026-06-11",
     proximaAccion: "Revisión de propuesta técnica",
     notas: "Interesados en co-branding y difusión por canales propios.",
+    moneda: "USD",
   },
   {
     id: "s9",
@@ -162,6 +171,7 @@ export const mockSponsors: Sponsor[] = [
     ultimoContacto: "2026-05-20",
     proximaAccion: "Recontactar para 2027",
     notas: "Recortaron presupuesto de marketing. Dejar para próxima edición.",
+    moneda: "USD",
   },
 ];
 
@@ -173,6 +183,7 @@ export const mockInscripciones: Inscripcion[] = [
     precioUnitario: 100,
     cantidadConfirmada: 85,
     cantidadProyectada: 150,
+    moneda: "USD",
   },
   {
     id: "i2",
@@ -181,6 +192,7 @@ export const mockInscripciones: Inscripcion[] = [
     precioUnitario: 50,
     cantidadConfirmada: 120,
     cantidadProyectada: 250,
+    moneda: "USD",
   },
   {
     id: "i3",
@@ -189,6 +201,7 @@ export const mockInscripciones: Inscripcion[] = [
     precioUnitario: 25,
     cantidadConfirmada: 45,
     cantidadProyectada: 80,
+    moneda: "USD",
   },
   {
     id: "i4",
@@ -197,6 +210,7 @@ export const mockInscripciones: Inscripcion[] = [
     precioUnitario: 15,
     cantidadConfirmada: 80,
     cantidadProyectada: 150,
+    moneda: "USD",
   },
   {
     id: "i5",
@@ -205,6 +219,7 @@ export const mockInscripciones: Inscripcion[] = [
     precioUnitario: 50,
     cantidadConfirmada: 30,
     cantidadProyectada: 50,
+    moneda: "USD",
   },
   {
     id: "i6",
@@ -213,6 +228,7 @@ export const mockInscripciones: Inscripcion[] = [
     precioUnitario: 75,
     cantidadConfirmada: 15,
     cantidadProyectada: 25,
+    moneda: "USD",
   },
   {
     id: "i7",
@@ -221,6 +237,7 @@ export const mockInscripciones: Inscripcion[] = [
     precioUnitario: 35,
     cantidadConfirmada: 20,
     cantidadProyectada: 40,
+    moneda: "USD",
   },
   {
     id: "i8",
@@ -229,6 +246,7 @@ export const mockInscripciones: Inscripcion[] = [
     precioUnitario: 0,
     cantidadConfirmada: 10,
     cantidadProyectada: 15,
+    moneda: "USD",
   },
   {
     id: "i9",
@@ -237,6 +255,7 @@ export const mockInscripciones: Inscripcion[] = [
     precioUnitario: 0,
     cantidadConfirmada: 25,
     cantidadProyectada: 30,
+    moneda: "USD",
   },
 ];
 
@@ -251,6 +270,7 @@ export const mockGastos: Gasto[] = [
     proveedor: "Hotel Sheraton Buenos Aires",
     fechaPago: "2026-09-01",
     notas: "Incluye 2 salas laterales para workshops.",
+    moneda: "USD",
   },
   {
     id: "g2",
@@ -262,6 +282,7 @@ export const mockGastos: Gasto[] = [
     proveedor: "StreamPro Argentina",
     fechaPago: "2026-10-01",
     notas: "Cotización recibida. Incluye 4 cámaras y stream 4K.",
+    moneda: "USD",
   },
   {
     id: "g3",
@@ -273,6 +294,7 @@ export const mockGastos: Gasto[] = [
     proveedor: "Catering Gourmet SRL",
     fechaPago: "2026-10-10",
     notas: "Para 300 personas por break. Menú vegano disponible.",
+    moneda: "USD",
   },
   {
     id: "g4",
@@ -284,6 +306,7 @@ export const mockGastos: Gasto[] = [
     proveedor: "Studio Pixel",
     fechaPago: "2026-05-15",
     notas: "Manual de marca, banners, certificados y material digital.",
+    moneda: "USD",
   },
   {
     id: "g5",
@@ -295,6 +318,7 @@ export const mockGastos: Gasto[] = [
     proveedor: "PromoAR",
     fechaPago: "2026-09-15",
     notas: "Para 300 bolsas con kit completo.",
+    moneda: "USD",
   },
   {
     id: "g6",
@@ -306,6 +330,7 @@ export const mockGastos: Gasto[] = [
     proveedor: "Digital Agency AR",
     fechaPago: "2026-10-15",
     notas: "Campaña activa hasta el evento.",
+    moneda: "USD",
   },
   {
     id: "g7",
@@ -317,6 +342,7 @@ export const mockGastos: Gasto[] = [
     proveedor: "TechSupport SRL",
     fechaPago: "2026-10-15",
     notas: "Redes, proyectores, micros y soporte durante el evento.",
+    moneda: "USD",
   },
   {
     id: "g8",
@@ -328,6 +354,7 @@ export const mockGastos: Gasto[] = [
     proveedor: "RR.HH. Interno",
     fechaPago: "2026-10-15",
     notas: "10 personas por 3 días.",
+    moneda: "USD",
   },
   {
     id: "g9",
@@ -339,6 +366,7 @@ export const mockGastos: Gasto[] = [
     proveedor: "Remises Ejecutivos",
     fechaPago: "2026-10-15",
     notas: "Traslado de speakers y autoridades.",
+    moneda: "USD",
   },
   {
     id: "g10",
@@ -350,6 +378,7 @@ export const mockGastos: Gasto[] = [
     proveedor: "Eventbrite / Plataforma propia",
     fechaPago: "2026-04-01",
     notas: "Suscripción anual.",
+    moneda: "USD",
   },
   {
     id: "g11",
@@ -361,6 +390,7 @@ export const mockGastos: Gasto[] = [
     proveedor: "Seguros Nacionales",
     fechaPago: "2026-09-01",
     notas: "Seguro de responsabilidad civil.",
+    moneda: "USD",
   },
   {
     id: "g12",
@@ -372,6 +402,7 @@ export const mockGastos: Gasto[] = [
     proveedor: "CertificAR",
     fechaPago: "2026-06-01",
     notas: "Plataforma de emisión de certificados con firma digital.",
+    moneda: "USD",
   },
 ];
 
@@ -386,6 +417,7 @@ export const defaultEscenarios: EscenarioConfig[] = [
     precioPromPresencial: 75,
     precioPromVirtual: 35,
     montoPromSponsor: 3000,
+    moneda: "USD",
   },
   {
     tipo: "Esperado",
@@ -397,6 +429,7 @@ export const defaultEscenarios: EscenarioConfig[] = [
     precioPromPresencial: 85,
     precioPromVirtual: 40,
     montoPromSponsor: 3200,
+    moneda: "USD",
   },
   {
     tipo: "Optimista",
@@ -408,5 +441,6 @@ export const defaultEscenarios: EscenarioConfig[] = [
     precioPromPresencial: 90,
     precioPromVirtual: 45,
     montoPromSponsor: 3500,
+    moneda: "USD",
   },
 ];

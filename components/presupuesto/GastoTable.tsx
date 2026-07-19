@@ -2,7 +2,7 @@
 
 import { Pencil, Trash2 } from "lucide-react";
 import type { Gasto } from "@/types";
-import { formatCurrency, formatDate } from "@/lib/formatters";
+import { formatCurrency, formatDate, formatTotalsByMoneda, sumByMoneda } from "@/lib/formatters";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -40,8 +40,8 @@ export function GastoTable({ gastos, onEdit, onDelete }: GastoTableProps) {
     );
   }
 
-  const totalPresupuesto = gastos.reduce((a, g) => a + g.presupuestoEstimado, 0);
-  const totalReal = gastos.reduce((a, g) => a + g.costoReal, 0);
+  const presupuestoByMoneda = sumByMoneda(gastos, (g) => g.presupuestoEstimado);
+  const realByMoneda = sumByMoneda(gastos.filter((g) => g.costoReal > 0), (g) => g.costoReal);
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
@@ -67,10 +67,10 @@ export function GastoTable({ gastos, onEdit, onDelete }: GastoTableProps) {
                   <td className="px-4 py-3">
                     <Badge variant="outline" className={cn("text-xs", CAT_COLORS[g.categoria])}>{g.categoria}</Badge>
                   </td>
-                  <td className="px-4 py-3 text-right text-slate-600 dark:text-slate-300">{formatCurrency(g.presupuestoEstimado)}</td>
+                  <td className="px-4 py-3 text-right text-slate-600 dark:text-slate-300">{formatCurrency(g.presupuestoEstimado, g.moneda)}</td>
                   <td className="px-4 py-3 text-right">
                     <span className={g.costoReal > 0 ? "text-slate-800 dark:text-slate-200" : "text-slate-300 dark:text-slate-600"}>
-                      {g.costoReal > 0 ? formatCurrency(g.costoReal) : "—"}
+                      {g.costoReal > 0 ? formatCurrency(g.costoReal, g.moneda) : "—"}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-center">
@@ -104,8 +104,8 @@ export function GastoTable({ gastos, onEdit, onDelete }: GastoTableProps) {
           <tfoot className="border-t border-slate-200 dark:border-slate-700">
             <tr className="bg-slate-50 dark:bg-slate-950/40">
               <td className="px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase" colSpan={2}>Total</td>
-              <td className="px-4 py-3 text-right text-sm font-bold text-slate-900 dark:text-white">{formatCurrency(totalPresupuesto)}</td>
-              <td className="px-4 py-3 text-right text-sm font-bold text-slate-900 dark:text-white">{totalReal > 0 ? formatCurrency(totalReal) : "—"}</td>
+              <td className="px-4 py-3 text-right text-sm font-bold text-slate-900 dark:text-white">{formatTotalsByMoneda(presupuestoByMoneda)}</td>
+              <td className="px-4 py-3 text-right text-sm font-bold text-slate-900 dark:text-white">{formatTotalsByMoneda(realByMoneda)}</td>
               <td colSpan={5}></td>
             </tr>
           </tfoot>

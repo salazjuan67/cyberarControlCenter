@@ -10,7 +10,8 @@ CREATE TABLE IF NOT EXISTS event_config (
   meta_presencial INT NOT NULL DEFAULT 0,
   meta_virtual INT NOT NULL DEFAULT 0,
   meta_sponsors INT NOT NULL DEFAULT 0,
-  break_even NUMERIC NOT NULL DEFAULT 0
+  break_even NUMERIC NOT NULL DEFAULT 0,
+  break_even_moneda TEXT NOT NULL DEFAULT 'USD'
 );
 
 CREATE TABLE IF NOT EXISTS sponsors (
@@ -28,6 +29,7 @@ CREATE TABLE IF NOT EXISTS sponsors (
   ultimo_contacto DATE,
   proxima_accion TEXT DEFAULT '',
   notas TEXT DEFAULT '',
+  moneda TEXT NOT NULL DEFAULT 'USD',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -38,6 +40,7 @@ CREATE TABLE IF NOT EXISTS inscripciones (
   precio_unitario NUMERIC NOT NULL DEFAULT 0,
   cantidad_confirmada INT NOT NULL DEFAULT 0,
   cantidad_proyectada INT NOT NULL DEFAULT 0,
+  moneda TEXT NOT NULL DEFAULT 'USD',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -51,6 +54,7 @@ CREATE TABLE IF NOT EXISTS gastos (
   proveedor TEXT DEFAULT '',
   fecha_pago DATE,
   notas TEXT DEFAULT '',
+  moneda TEXT NOT NULL DEFAULT 'USD',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -63,5 +67,13 @@ CREATE TABLE IF NOT EXISTS escenarios (
   gastos_estimados NUMERIC NOT NULL DEFAULT 0,
   precio_prom_presencial NUMERIC NOT NULL DEFAULT 0,
   precio_prom_virtual NUMERIC NOT NULL DEFAULT 0,
-  monto_prom_sponsor NUMERIC NOT NULL DEFAULT 0
+  monto_prom_sponsor NUMERIC NOT NULL DEFAULT 0,
+  moneda TEXT NOT NULL DEFAULT 'USD'
+);
+
+CREATE TABLE IF NOT EXISTS finance_summary_cache (
+  id INT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+  payload JSONB NOT NULL,
+  generated_at TIMESTAMPTZ NOT NULL,
+  synced_at TIMESTAMPTZ DEFAULT NOW()
 );

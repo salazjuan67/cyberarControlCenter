@@ -81,11 +81,11 @@ export function SponsorTable({ sponsors, onEdit, onDelete }: SponsorTableProps) 
                   <Badge variant="outline" className={cn("text-xs whitespace-nowrap", ESTADO_COLORS[s.estado])}>{s.estado}</Badge>
                 </td>
                 <td className="px-4 py-3 text-right text-slate-600 dark:text-slate-300">
-                  {s.montoEstimado > 0 ? formatCurrency(s.montoEstimado) : "—"}
+                  {s.montoEstimado > 0 ? formatCurrency(s.montoEstimado, s.moneda) : "—"}
                 </td>
                 <td className="px-4 py-3 text-right">
                   <span className={s.montoConfirmado > 0 ? "text-emerald-600 dark:text-emerald-400 font-semibold" : "text-slate-300 dark:text-slate-600"}>
-                    {s.montoConfirmado > 0 ? formatCurrency(s.montoConfirmado) : "—"}
+                    {s.montoConfirmado > 0 ? formatCurrency(s.montoConfirmado, s.moneda) : "—"}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-center">

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Gasto, GastoCategoria, GastoEstado } from "@/types";
+import { MonedaSelect } from "@/components/shared/MonedaSelect";
 
 const inputCls = "bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500";
 const selectContentCls = "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700";
@@ -57,12 +58,20 @@ export function GastoDialog({ open, onOpenChange, initial, defaultValues, onSave
               </SelectContent>
             </Select>
           </div>
+          <div className="col-span-2">
+            <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">Moneda</label>
+            <MonedaSelect
+              value={form.moneda}
+              onChange={(v) => set("moneda", v)}
+              className={inputCls}
+            />
+          </div>
           <div>
-            <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">Presupuesto Estimado (USD)</label>
+            <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">Presupuesto Estimado</label>
             <Input type="number" value={form.presupuestoEstimado} onChange={(e) => set("presupuestoEstimado", +e.target.value)} className={inputCls} />
           </div>
           <div>
-            <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">Costo Real (USD)</label>
+            <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">Costo Real</label>
             <Input type="number" value={form.costoReal} onChange={(e) => set("costoReal", +e.target.value)} className={inputCls} />
           </div>
           <div>
