@@ -86,7 +86,7 @@ export async function syncFinanceSummary(
     return {
       summary: cached,
       source: "cache",
-      error: "CYBERAR_FINANCE_API_KEY no configurada",
+      error: "FINANCE_API_KEY no configurada",
     };
   }
 

@@ -85,7 +85,7 @@ export function CyberarFinancePanel({
         <div className="flex items-start gap-2 rounded-lg border border-yellow-200 dark:border-yellow-500/30 bg-yellow-50 dark:bg-yellow-500/10 p-3 text-sm text-yellow-800 dark:text-yellow-200">
           <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
           <p>
-            Configurá <code className="text-xs">CYBERAR_FINANCE_API_KEY</code> en el servidor
+            Configurá <code className="text-xs">FINANCE_API_KEY</code> en el servidor
             (Vercel / .env.local). La key no debe ir al frontend ni al repo.
           </p>
         </div>

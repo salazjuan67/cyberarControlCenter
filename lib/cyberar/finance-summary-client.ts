@@ -7,10 +7,10 @@ const DEFAULT_API_URL =
   "https://lgupizxwgjeyduinfghh.supabase.co/functions/v1/finance-summary";
 
 function getApiConfig() {
-  const apiKey = process.env.CYBERAR_FINANCE_API_KEY;
+  const apiKey = process.env.FINANCE_API_KEY;
   if (!apiKey) {
     throw new Error(
-      "CYBERAR_FINANCE_API_KEY no está configurada. Agregala en Vercel o .env.local."
+      "FINANCE_API_KEY no está configurada. Agregala en Vercel o .env.local."
     );
   }
 
@@ -93,5 +93,5 @@ export async function fetchFinanceSummaryFromApi(
 }
 
 export function isFinanceSummaryConfigured(): boolean {
-  return Boolean(process.env.CYBERAR_FINANCE_API_KEY);
+  return Boolean(process.env.FINANCE_API_KEY);
 }
