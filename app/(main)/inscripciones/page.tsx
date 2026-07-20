@@ -34,7 +34,7 @@ export default function InscripcionesPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Inscripcion | null>(null);
 
-  const activeMonedas = getActiveMonedas([], inscripciones, []);
+  const activeMonedas = getActiveMonedas([], inscripciones, [], [], financeSummary);
 
   function formatByMoneda(calc: (m: Moneda) => number): string {
     if (activeMonedas.length === 0) return formatCurrency(0, config.moneda);
@@ -44,8 +44,8 @@ export default function InscripcionesPage() {
   function emptyInscripcion(): Omit<Inscripcion, "id"> {
     return { ...EMPTY_BASE, moneda: config.moneda };
   }
-  const presConf = calcAsistentesPresenciales(inscripciones);
-  const virtConf = calcAsistentesVirtuales(inscripciones);
+  const presConf = calcAsistentesPresenciales(inscripciones, "confirmada", undefined, financeSummary);
+  const virtConf = calcAsistentesVirtuales(inscripciones, "confirmada", undefined, financeSummary);
 
   function handleSave(data: Omit<Inscripcion, "id">) {
     editing ? updateInscripcion(editing.id, data) : addInscripcion({ ...data, id: `i${Date.now()}` });
@@ -66,8 +66,8 @@ export default function InscripcionesPage() {
         />
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-          <KPICard title="Ingresos Confirmados" value={formatByMoneda((m) => calcTotalInscripcionesConfirmado(inscripciones, m))} subtitle="Inscripciones pagadas" icon={DollarSign} accent="emerald" />
-          <KPICard title="Ingresos Proyectados" value={formatByMoneda((m) => calcTotalInscripcionesProyectado(inscripciones, m))} subtitle="Según metas" icon={TrendingUp} accent="cyan" />
+          <KPICard title="Ingresos Confirmados" value={formatByMoneda((m) => calcTotalInscripcionesConfirmado(inscripciones, m, financeSummary))} subtitle="Inscripciones pagadas (CYBER.AR + manual)" icon={DollarSign} accent="emerald" />
+          <KPICard title="Ingresos Proyectados" value={formatByMoneda((m) => calcTotalInscripcionesProyectado(inscripciones, m, financeSummary))} subtitle="Según metas y pagos reales" icon={TrendingUp} accent="cyan" />
           <KPICard title="Presencial" value={formatNumber(presConf)} subtitle={`Meta: ${formatNumber(config.metaPresencial)}`} icon={Users} accent="blue"
             trend={presConf >= config.metaPresencial * 0.7 ? "up" : "neutral"}
             trendLabel={`${((presConf / config.metaPresencial) * 100).toFixed(0)}% de meta`} />
@@ -76,7 +76,7 @@ export default function InscripcionesPage() {
             trendLabel={`${((virtConf / config.metaVirtual) * 100).toFixed(0)}% de meta`} />
         </div>
 
-        <InscripcionCharts inscripciones={inscripciones} />
+        <InscripcionCharts inscripciones={inscripciones} financeSummary={financeSummary} />
         <InscripcionSimulator inscripciones={inscripciones} />
 
         <div className="flex items-center justify-between">

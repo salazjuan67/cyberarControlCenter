@@ -62,7 +62,7 @@ export function CyberarFinancePanel({
             </h3>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Pull desde finance-summary · solo pagos aprobados
+            Pull desde finance-summary · alimenta KPIs del dashboard
             {generatedAt && <> · generado {generatedAt}</>}
             {syncedAt && <> · sync {syncedAt}</>}
           </p>

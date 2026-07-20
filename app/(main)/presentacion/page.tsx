@@ -12,21 +12,22 @@ import { RevenueChart } from "@/components/dashboard/RevenueChart";
 import { SponsorStatusChart, IngresosFuenteChart } from "@/components/dashboard/DistributionCharts";
 
 export default function PresentacionPage() {
-  const { sponsors, inscripciones, gastos, config } = useStore();
+  const { sponsors, inscripciones, gastos, config, financeSummary } = useStore();
   const { theme } = useTheme();
-  const activeMonedas = getActiveMonedas(sponsors, inscripciones, gastos);
+  const activeMonedas = getActiveMonedas(sponsors, inscripciones, gastos, [], financeSummary);
   const primaryMoneda = activeMonedas[0] ?? config.moneda;
   const kpis = calcKPIs(
     sponsors,
     inscripciones,
     gastos,
     config.breakEvenMoneda === primaryMoneda ? config.breakEven : 0,
-    primaryMoneda
+    primaryMoneda,
+    financeSummary
   );
   const sponsorsIngresos = calcSponsorsConfirmados(sponsors, primaryMoneda);
-  const inscripcionesProyTotal = calcTotalInscripcionesProyectado(inscripciones, primaryMoneda);
-  const presConf = calcAsistentesPresenciales(inscripciones);
-  const virtConf = calcAsistentesVirtuales(inscripciones);
+  const inscripcionesProyTotal = calcTotalInscripcionesProyectado(inscripciones, primaryMoneda, financeSummary);
+  const presConf = calcAsistentesPresenciales(inscripciones, "confirmada", undefined, financeSummary);
+  const virtConf = calcAsistentesVirtuales(inscripciones, "confirmada", undefined, financeSummary);
   const isPositive = kpis.resultadoNeto >= 0;
 
   const isDark = theme === "dark";

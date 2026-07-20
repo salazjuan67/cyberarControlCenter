@@ -2,7 +2,9 @@
 
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import type { Sponsor, Inscripcion, Moneda } from "@/types";
+import type { FinanceSummary } from "@/types/finance-summary";
 import { formatCurrency } from "@/lib/formatters";
+import { mergeModalidadConfirmados } from "@/lib/finance-summary-merge";
 import { useChartColors } from "@/lib/useChartColors";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -111,15 +113,19 @@ export function IngresosFuenteChart({
 export function InscripcionesModalidadChart({
   inscripciones,
   moneda,
+  financeSummary,
 }: {
   inscripciones: Inscripcion[];
   moneda?: Moneda;
+  financeSummary?: FinanceSummary | null;
 }) {
   const c = useChartColors();
 
-  const filtered = moneda ? inscripciones.filter((i) => i.moneda === moneda) : inscripciones;
-  const presencial = filtered.filter((i) => i.modalidad === "Presencial").reduce((a, b) => a + b.cantidadConfirmada, 0);
-  const virtual = filtered.filter((i) => i.modalidad === "Virtual").reduce((a, b) => a + b.cantidadConfirmada, 0);
+  const { presencial, virtual } = mergeModalidadConfirmados(
+    inscripciones,
+    financeSummary,
+    moneda
+  );
 
   if (presencial === 0 && virtual === 0) return null;
 

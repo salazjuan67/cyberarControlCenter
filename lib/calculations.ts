@@ -7,7 +7,15 @@ import type {
   KPIs,
   Moneda,
 } from "@/types";
+import type { FinanceSummary } from "@/types/finance-summary";
 import { MONEDAS } from "@/types";
+import {
+  getFinanceMonedas,
+  mergeAsistentesPresenciales,
+  mergeAsistentesVirtuales,
+  mergeInscripcionesConfirmado,
+  mergeInscripcionesProyectado,
+} from "@/lib/finance-summary-merge";
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 export function filterByMoneda<T extends { moneda: Moneda }>(
@@ -42,7 +50,8 @@ export function getActiveMonedas(
   sponsors: Sponsor[],
   inscripciones: Inscripcion[],
   gastos: Gasto[],
-  escenarios: EscenarioConfig[] = []
+  escenarios: EscenarioConfig[] = [],
+  financeSummary?: FinanceSummary | null
 ): Moneda[] {
   const active = new Set<Moneda>();
 
@@ -57,6 +66,9 @@ export function getActiveMonedas(
   }
   for (const e of escenarios) {
     if (hasEscenarioAmounts(e)) active.add(e.moneda);
+  }
+  for (const m of getFinanceMonedas(financeSummary)) {
+    active.add(m);
   }
 
   return MONEDAS.filter((m) => active.has(m));
@@ -104,44 +116,68 @@ export function calcIngresoProyectado(insc: Inscripcion): number {
 
 export function calcTotalInscripcionesConfirmado(
   inscripciones: Inscripcion[],
-  moneda?: Moneda
+  moneda?: Moneda,
+  financeSummary?: FinanceSummary | null
 ): number {
-  const list = moneda ? filterByMoneda(inscripciones, moneda) : inscripciones;
-  return list.reduce((acc, i) => acc + calcIngresoConfirmado(i), 0);
+  if (moneda) {
+    return mergeInscripcionesConfirmado(inscripciones, moneda, financeSummary);
+  }
+  const monedas = getActiveMonedas([], inscripciones, [], [], financeSummary);
+  if (monedas.length === 0) {
+    return inscripciones.reduce((acc, i) => acc + calcIngresoConfirmado(i), 0);
+  }
+  return monedas.reduce(
+    (acc, m) => acc + mergeInscripcionesConfirmado(inscripciones, m, financeSummary),
+    0
+  );
 }
 
 export function calcTotalInscripcionesProyectado(
   inscripciones: Inscripcion[],
-  moneda?: Moneda
+  moneda?: Moneda,
+  financeSummary?: FinanceSummary | null
 ): number {
-  const list = moneda ? filterByMoneda(inscripciones, moneda) : inscripciones;
-  return list.reduce((acc, i) => acc + calcIngresoProyectado(i), 0);
+  if (moneda) {
+    return mergeInscripcionesProyectado(inscripciones, moneda, financeSummary);
+  }
+  const monedas = getActiveMonedas([], inscripciones, [], [], financeSummary);
+  if (monedas.length === 0) {
+    return inscripciones.reduce((acc, i) => acc + calcIngresoProyectado(i), 0);
+  }
+  return monedas.reduce(
+    (acc, m) => acc + mergeInscripcionesProyectado(inscripciones, m, financeSummary),
+    0
+  );
 }
 
 export function calcAsistentesPresenciales(
   inscripciones: Inscripcion[],
   tipo: "confirmada" | "proyectada" = "confirmada",
-  moneda?: Moneda
+  moneda?: Moneda,
+  financeSummary?: FinanceSummary | null
 ): number {
+  if (tipo === "confirmada") {
+    return mergeAsistentesPresenciales(inscripciones, financeSummary, moneda);
+  }
   const list = moneda ? filterByMoneda(inscripciones, moneda) : inscripciones;
-  const field =
-    tipo === "confirmada" ? "cantidadConfirmada" : "cantidadProyectada";
   return list
     .filter((i) => i.modalidad === "Presencial")
-    .reduce((acc, i) => acc + i[field], 0);
+    .reduce((acc, i) => acc + i.cantidadProyectada, 0);
 }
 
 export function calcAsistentesVirtuales(
   inscripciones: Inscripcion[],
   tipo: "confirmada" | "proyectada" = "confirmada",
-  moneda?: Moneda
+  moneda?: Moneda,
+  financeSummary?: FinanceSummary | null
 ): number {
+  if (tipo === "confirmada") {
+    return mergeAsistentesVirtuales(inscripciones, financeSummary, moneda);
+  }
   const list = moneda ? filterByMoneda(inscripciones, moneda) : inscripciones;
-  const field =
-    tipo === "confirmada" ? "cantidadConfirmada" : "cantidadProyectada";
   return list
     .filter((i) => i.modalidad === "Virtual")
-    .reduce((acc, i) => acc + i[field], 0);
+    .reduce((acc, i) => acc + i.cantidadProyectada, 0);
 }
 
 // ─── Gastos ───────────────────────────────────────────────────────────────────
@@ -171,15 +207,23 @@ export function calcKPIs(
   inscripciones: Inscripcion[],
   gastos: Gasto[],
   breakEvenTarget: number,
-  moneda: Moneda = "USD"
+  moneda: Moneda = "USD",
+  financeSummary?: FinanceSummary | null
 ): KPIs {
   const filteredSponsors = filterByMoneda(sponsors, moneda);
-  const filteredInscripciones = filterByMoneda(inscripciones, moneda);
   const filteredGastos = filterByMoneda(gastos, moneda);
 
   const ingresosSponsorsConf = calcSponsorsConfirmados(filteredSponsors);
-  const ingresosInscConf = calcTotalInscripcionesConfirmado(filteredInscripciones);
-  const ingresosInscProy = calcTotalInscripcionesProyectado(filteredInscripciones);
+  const ingresosInscConf = mergeInscripcionesConfirmado(
+    inscripciones,
+    moneda,
+    financeSummary
+  );
+  const ingresosInscProy = mergeInscripcionesProyectado(
+    inscripciones,
+    moneda,
+    financeSummary
+  );
   const ingresosSponsorsPond = calcSponsorsPonderado(filteredSponsors);
 
   const ingresosConfirmados = ingresosSponsorsConf + ingresosInscConf;
@@ -215,8 +259,16 @@ export function calcKPIs(
         s.estado === "Contactado" ||
         s.estado === "Lead"
     ).length,
-    inscripcionesPresenciales: calcAsistentesPresenciales(filteredInscripciones),
-    inscripcionesVirtuales: calcAsistentesVirtuales(filteredInscripciones),
+    inscripcionesPresenciales: mergeAsistentesPresenciales(
+      inscripciones,
+      financeSummary,
+      moneda
+    ),
+    inscripcionesVirtuales: mergeAsistentesVirtuales(
+      inscripciones,
+      financeSummary,
+      moneda
+    ),
     totalSponsors: filteredSponsors.filter((s) => s.estado !== "Perdido").length,
     avanceBreakEven,
   };
@@ -227,9 +279,10 @@ export function calcKPIsByMoneda(
   inscripciones: Inscripcion[],
   gastos: Gasto[],
   breakEvenTarget: number,
-  breakEvenMoneda: Moneda
+  breakEvenMoneda: Moneda,
+  financeSummary?: FinanceSummary | null
 ): Partial<Record<Moneda, KPIs>> {
-  const active = getActiveMonedas(sponsors, inscripciones, gastos);
+  const active = getActiveMonedas(sponsors, inscripciones, gastos, [], financeSummary);
   const result: Partial<Record<Moneda, KPIs>> = {};
 
   for (const moneda of active) {
@@ -240,7 +293,8 @@ export function calcKPIsByMoneda(
       inscripciones,
       gastos,
       breakEven,
-      moneda
+      moneda,
+      financeSummary
     );
   }
 

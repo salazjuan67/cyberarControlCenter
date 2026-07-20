@@ -29,16 +29,20 @@ export default function DashboardPage() {
     financeSummaryConfigured,
     refreshFinanceSummary,
   } = useStore();
-  const activeMonedas = getActiveMonedas(sponsors, inscripciones, gastos);
+  const activeMonedas = getActiveMonedas(sponsors, inscripciones, gastos, [], financeSummary);
   const kpisByMoneda = calcKPIsByMoneda(
     sponsors,
     inscripciones,
     gastos,
     config.breakEven,
-    config.breakEvenMoneda
+    config.breakEvenMoneda,
+    financeSummary
   );
 
-  if (activeMonedas.length === 0) {
+  const hasManualData = getActiveMonedas(sponsors, inscripciones, gastos).length > 0;
+  const hasFinanceData = activeMonedas.length > 0;
+
+  if (!hasFinanceData && !hasManualData) {
     return (
       <div className="flex flex-col flex-1">
         <Header title="Dashboard Ejecutivo" subtitle="CYBER.AR 2026 — Vista financiera consolidada" badge="Tiempo real" />
@@ -75,7 +79,7 @@ export default function DashboardPage() {
         {activeMonedas.map((moneda) => {
           const kpis = kpisByMoneda[moneda]!;
           const sponsorsIngresos = calcSponsorsConfirmados(sponsors, moneda);
-          const inscripcionesProyTotal = calcTotalInscripcionesProyectado(inscripciones, moneda);
+          const inscripcionesProyTotal = calcTotalInscripcionesProyectado(inscripciones, moneda, financeSummary);
           const inscripcionesConfTotal = kpis.ingresosConfirmados - sponsorsIngresos;
           const sponsorsProyTotal = kpis.ingresosProyectados - inscripcionesProyTotal;
 
@@ -134,7 +138,11 @@ export default function DashboardPage() {
                     inscripcionesTotal={inscripcionesProyTotal}
                     sponsorsTotal={Math.max(0, sponsorsProyTotal)} />
                   <SponsorStatusChart sponsors={sponsors.filter((s) => s.moneda === moneda)} />
-                  <InscripcionesModalidadChart inscripciones={inscripciones} moneda={moneda} />
+                  <InscripcionesModalidadChart
+                    inscripciones={inscripciones}
+                    moneda={moneda}
+                    financeSummary={financeSummary}
+                  />
                 </div>
               </div>
 
