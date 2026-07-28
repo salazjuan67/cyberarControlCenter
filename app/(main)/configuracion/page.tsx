@@ -39,6 +39,16 @@ export default function ConfiguracionPage() {
   function handleSave() { setConfig(form); setSaved(true); setTimeout(() => setSaved(false), 2000); }
   function set(field: keyof EventConfig, value: string | number) { setForm((p) => ({ ...p, [field]: value })); }
 
+  function persistMoneda(moneda: Moneda) {
+    setForm((p) => ({ ...p, moneda }));
+    setConfig({ moneda });
+  }
+
+  function persistBreakEvenMoneda(breakEvenMoneda: Moneda) {
+    setForm((p) => ({ ...p, breakEvenMoneda }));
+    setConfig({ breakEvenMoneda });
+  }
+
   async function handleClearAll() {
     setClearing(true);
     await clearAllData();
@@ -75,12 +85,17 @@ export default function ConfiguracionPage() {
             </div>
             <div>
               <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">Moneda por defecto</label>
-              <Select value={form.moneda} onValueChange={(v) => v && set("moneda", v as Moneda)}>
+              <Select value={form.moneda} onValueChange={(v) => v && persistMoneda(v as Moneda)}>
                 <SelectTrigger className={inputCls}><SelectValue /></SelectTrigger>
                 <SelectContent className={selectContentCls}>
-                  {["USD","ARS","EUR"].map((c) => <SelectItem key={c} value={c} className={selectItemCls}>{c}</SelectItem>)}
+                  {(["USD","ARS","EUR"] as Moneda[]).map((c) => (
+                    <SelectItem key={c} value={c} className={selectItemCls}>
+                      {c === "ARS" ? "Pesos (ARS)" : c === "USD" ? "Dólares (USD)" : "Euros (EUR)"}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Se guarda al seleccionar. Aplica a registros nuevos.</p>
             </div>
             <div>
               <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">Fecha de Inicio</label>
@@ -117,7 +132,7 @@ export default function ConfiguracionPage() {
             </div>
             <div>
               <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">Moneda Break Even</label>
-              <Select value={form.breakEvenMoneda} onValueChange={(v) => v && set("breakEvenMoneda", v as Moneda)}>
+              <Select value={form.breakEvenMoneda} onValueChange={(v) => v && persistBreakEvenMoneda(v as Moneda)}>
                 <SelectTrigger className={inputCls}><SelectValue /></SelectTrigger>
                 <SelectContent className={selectContentCls}>
                   {["USD","ARS","EUR"].map((c) => <SelectItem key={c} value={c} className={selectItemCls}>{c}</SelectItem>)}
@@ -154,7 +169,7 @@ export default function ConfiguracionPage() {
           </Button>
           <Button variant="outline" onClick={handleReset} disabled={resetting}
             className="border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white bg-transparent gap-2">
-            <RotateCcw className="w-4 h-4" />{resetting ? "Restaurando..." : "Restaurar datos demo"}
+            <RotateCcw className="w-4 h-4" />{resetting ? "Restaurando..." : "Restaurar datos demo (borra todo)"}
           </Button>
         </div>
 

@@ -1,14 +1,14 @@
 import type { Moneda } from "@/types";
 
 export const MONEDA_LABELS: Record<Moneda, string> = {
-  USD: "USD",
-  ARS: "ARS",
-  EUR: "EUR",
+  USD: "Dólares (USD)",
+  ARS: "Pesos (ARS)",
+  EUR: "Euros (EUR)",
 };
 
 export function formatCurrency(
   amount: number,
-  currency: Moneda | string = "USD",
+  currency: Moneda | string = "ARS",
   compact = false
 ): string {
   const code = currency === "ARS" || currency === "EUR" || currency === "USD"

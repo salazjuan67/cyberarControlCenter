@@ -9,7 +9,7 @@ import type {
 
 function asMoneda(value: unknown): Moneda {
   if (value === "USD" || value === "ARS" || value === "EUR") return value;
-  return "USD";
+  return "ARS";
 }
 
 export function mapConfig(row: Record<string, unknown>): EventConfig {

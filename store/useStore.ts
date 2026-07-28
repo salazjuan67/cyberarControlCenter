@@ -43,6 +43,9 @@ interface AppState {
   financeSummaryError: string | null;
   financeSummaryConfigured: boolean;
 
+  saveError: string | null;
+  clearSaveError: () => void;
+
   hydrate: (data: {
     config: EventConfig;
     sponsors: Sponsor[];
@@ -98,6 +101,7 @@ export const useStore = create<AppState>()((set, get) => ({
   financeSummaryLoading: false,
   financeSummaryError: null,
   financeSummaryConfigured: false,
+  saveError: null,
 
   hydrate: (data) =>
     set({
@@ -108,84 +112,120 @@ export const useStore = create<AppState>()((set, get) => ({
 
   setLoading: (loading) => set({ isLoading: loading }),
 
+  clearSaveError: () => set({ saveError: null }),
+
   setConfig: (updates) => {
     const newConfig = { ...get().config, ...updates };
-    set({ config: newConfig });
-    void saveConfig(newConfig);
+    set({ config: newConfig, saveError: null });
+    saveConfig(newConfig).catch((err: Error) => {
+      set({ saveError: err.message || "Error al guardar configuración" });
+    });
   },
 
   addSponsor: (sponsor) => {
-    set((state) => ({ sponsors: [...state.sponsors, sponsor] }));
-    void saveSponsor(sponsor);
+    set((state) => ({ sponsors: [...state.sponsors, sponsor], saveError: null }));
+    saveSponsor(sponsor).catch((err: Error) => {
+      set({ saveError: err.message || "Error al guardar sponsor" });
+    });
   },
 
   updateSponsor: (id, updates) => {
     const updated = get().sponsors.map((s) =>
       s.id === id ? { ...s, ...updates } : s
     );
-    set({ sponsors: updated });
+    set({ sponsors: updated, saveError: null });
     const sponsor = updated.find((s) => s.id === id);
-    if (sponsor) void saveSponsor(sponsor);
+    if (sponsor) {
+      saveSponsor(sponsor).catch((err: Error) => {
+        set({ saveError: err.message || "Error al guardar sponsor" });
+      });
+    }
   },
 
   deleteSponsor: (id) => {
     set((state) => ({
       sponsors: state.sponsors.filter((s) => s.id !== id),
+      saveError: null,
     }));
-    void removeSponsor(id);
+    removeSponsor(id).catch((err: Error) => {
+      set({ saveError: err.message || "Error al eliminar sponsor" });
+    });
   },
 
   addInscripcion: (inscripcion) => {
     set((state) => ({
       inscripciones: [...state.inscripciones, inscripcion],
+      saveError: null,
     }));
-    void saveInscripcion(inscripcion);
+    saveInscripcion(inscripcion).catch((err: Error) => {
+      set({ saveError: err.message || "Error al guardar inscripción" });
+    });
   },
 
   updateInscripcion: (id, updates) => {
     const updated = get().inscripciones.map((i) =>
       i.id === id ? { ...i, ...updates } : i
     );
-    set({ inscripciones: updated });
+    set({ inscripciones: updated, saveError: null });
     const inscripcion = updated.find((i) => i.id === id);
-    if (inscripcion) void saveInscripcion(inscripcion);
+    if (inscripcion) {
+      saveInscripcion(inscripcion).catch((err: Error) => {
+        set({ saveError: err.message || "Error al guardar inscripción" });
+      });
+    }
   },
 
   deleteInscripcion: (id) => {
     set((state) => ({
       inscripciones: state.inscripciones.filter((i) => i.id !== id),
+      saveError: null,
     }));
-    void removeInscripcion(id);
+    removeInscripcion(id).catch((err: Error) => {
+      set({ saveError: err.message || "Error al eliminar inscripción" });
+    });
   },
 
   addGasto: (gasto) => {
-    set((state) => ({ gastos: [...state.gastos, gasto] }));
-    void saveGasto(gasto);
+    set((state) => ({ gastos: [...state.gastos, gasto], saveError: null }));
+    saveGasto(gasto).catch((err: Error) => {
+      set({ saveError: err.message || "Error al guardar gasto" });
+    });
   },
 
   updateGasto: (id, updates) => {
     const updated = get().gastos.map((g) =>
       g.id === id ? { ...g, ...updates } : g
     );
-    set({ gastos: updated });
+    set({ gastos: updated, saveError: null });
     const gasto = updated.find((g) => g.id === id);
-    if (gasto) void saveGasto(gasto);
+    if (gasto) {
+      saveGasto(gasto).catch((err: Error) => {
+        set({ saveError: err.message || "Error al guardar gasto" });
+      });
+    }
   },
 
   deleteGasto: (id) => {
     set((state) => ({
       gastos: state.gastos.filter((g) => g.id !== id),
+      saveError: null,
     }));
-    void removeGasto(id);
+    removeGasto(id).catch((err: Error) => {
+      set({ saveError: err.message || "Error al eliminar gasto" });
+    });
   },
 
   updateEscenario: (tipo, updates) => {
     const updated = get().escenarios.map((e) =>
       e.tipo === tipo ? { ...e, ...updates } : e
     );
-    set({ escenarios: updated });
+    set({ escenarios: updated, saveError: null });
     const escenario = updated.find((e) => e.tipo === tipo);
-    if (escenario) void saveEscenario(escenario);
+    if (escenario) {
+      saveEscenario(escenario).catch((err: Error) => {
+        set({ saveError: err.message || "Error al guardar escenario" });
+      });
+    }
   },
 
   setPresentationMode: (value) => set({ presentationMode: value }),

@@ -58,11 +58,12 @@ export function CyberarFinancePanel({
               CYBER.AR
             </span>
             <h3 className="text-slate-800 dark:text-slate-100 font-semibold text-sm">
-              Inscripciones — pagos aprobados
+              Inscripciones — pagos aprobados (solo lectura)
             </h3>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Pull desde finance-summary · alimenta KPIs del dashboard
+            Confirmados reales desde CYBER.AR. Los <strong className="font-medium">proyectados</strong> se editan en
+            Inscripciones → tabla de categorías (columna Cantidad Proyectada).
             {generatedAt && <> · generado {generatedAt}</>}
             {syncedAt && <> · sync {syncedAt}</>}
           </p>

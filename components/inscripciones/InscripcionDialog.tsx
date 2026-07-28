@@ -25,7 +25,7 @@ interface Props {
 
 export function InscripcionDialog({ open, onOpenChange, initial, defaultValues, onSave }: Props) {
   const [form, setForm] = useState<Omit<Inscripcion, "id">>(initial ? { ...initial } : { ...defaultValues });
-  useEffect(() => { setForm(initial ? { ...initial } : { ...defaultValues }); }, [initial, open]);
+  useEffect(() => { setForm(initial ? { ...initial } : { ...defaultValues }); }, [initial, open, defaultValues]);
   function set(field: keyof Omit<Inscripcion, "id">, value: string | number) { setForm((p) => ({ ...p, [field]: value })); }
 
   return (

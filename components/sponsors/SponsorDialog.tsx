@@ -24,7 +24,7 @@ interface SponsorDialogProps {
 export function SponsorDialog({ open, onOpenChange, initial, defaultValues, onSave }: SponsorDialogProps) {
   const [form, setForm] = useState<Omit<Sponsor, "id">>(initial ? { ...initial } : { ...defaultValues });
 
-  useEffect(() => { setForm(initial ? { ...initial } : { ...defaultValues }); }, [initial, open]);
+  useEffect(() => { setForm(initial ? { ...initial } : { ...defaultValues }); }, [initial, open, defaultValues]);
 
   function set(field: keyof Omit<Sponsor, "id">, value: string | number) {
     setForm((prev) => ({ ...prev, [field]: value }));

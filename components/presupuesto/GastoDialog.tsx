@@ -26,7 +26,7 @@ interface GastoDialogProps {
 
 export function GastoDialog({ open, onOpenChange, initial, defaultValues, onSave }: GastoDialogProps) {
   const [form, setForm] = useState<Omit<Gasto, "id">>(initial ? { ...initial } : { ...defaultValues });
-  useEffect(() => { setForm(initial ? { ...initial } : { ...defaultValues }); }, [initial, open]);
+  useEffect(() => { setForm(initial ? { ...initial } : { ...defaultValues }); }, [initial, open, defaultValues]);
   function set(field: keyof Omit<Gasto, "id">, value: string | number) { setForm((p) => ({ ...p, [field]: value })); }
 
   return (

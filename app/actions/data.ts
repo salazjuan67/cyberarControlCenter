@@ -37,6 +37,23 @@ export interface AppData {
   escenarios: EscenarioConfig[];
 }
 
+async function seedInitialDatabase(): Promise<AppData> {
+  const supabase = createSupabaseServer();
+
+  await supabase.from("event_config").upsert(configToRow(defaultConfig));
+  await supabase
+    .from("escenarios")
+    .upsert(defaultEscenarios.map(escenarioToRow));
+
+  return {
+    config: defaultConfig,
+    sponsors: [],
+    inscripciones: [],
+    gastos: [],
+    escenarios: defaultEscenarios,
+  };
+}
+
 async function seedDatabase() {
   const supabase = createSupabaseServer();
 
@@ -72,13 +89,27 @@ export async function fetchAllData(): Promise<AppData> {
       supabase.from("escenarios").select("*"),
     ]);
 
+  const errors = [
+    configRes.error,
+    sponsorsRes.error,
+    inscripcionesRes.error,
+    gastosRes.error,
+    escenariosRes.error,
+  ].filter(Boolean);
+
+  if (errors.length > 0) {
+    throw new Error(errors.map((e) => e!.message).join(" · "));
+  }
+
   const hasData =
     configRes.data ||
     (sponsorsRes.data && sponsorsRes.data.length > 0) ||
-    (inscripcionesRes.data && inscripcionesRes.data.length > 0);
+    (inscripcionesRes.data && inscripcionesRes.data.length > 0) ||
+    (gastosRes.data && gastosRes.data.length > 0) ||
+    (escenariosRes.data && escenariosRes.data.length > 0);
 
   if (!hasData) {
-    return seedDatabase();
+    return seedInitialDatabase();
   }
 
   return {

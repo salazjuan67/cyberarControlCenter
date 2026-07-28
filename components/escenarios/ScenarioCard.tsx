@@ -5,6 +5,7 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import type { EscenarioResultado, EscenarioConfig } from "@/types";
 import { formatCurrency, formatPercent } from "@/lib/formatters";
 import { MonedaSelect } from "@/components/shared/MonedaSelect";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 const STYLES: Record<string, { border: string; tag: string; accent: string; valueBg: string }> = {
@@ -28,11 +29,26 @@ const STYLES: Record<string, { border: string; tag: string; accent: string; valu
   },
 };
 
+const inputCls =
+  "bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-200 h-8 text-sm";
+
 interface ScenarioCardProps {
   result: EscenarioResultado;
   expectedResult: EscenarioResultado;
   onUpdate: (updates: Partial<EscenarioConfig>) => void;
 }
+
+type NumericField = keyof Pick<
+  EscenarioConfig,
+  | "asistentesPresenciales"
+  | "asistentesVirtuales"
+  | "sponsorsConfirmados"
+  | "sponsorsPotenciales"
+  | "gastosEstimados"
+  | "precioPromPresencial"
+  | "precioPromVirtual"
+  | "montoPromSponsor"
+>;
 
 export function ScenarioCard({ result, expectedResult, onUpdate }: ScenarioCardProps) {
   const [expanded, setExpanded] = useState(false);
@@ -44,6 +60,25 @@ export function ScenarioCard({ result, expectedResult, onUpdate }: ScenarioCardP
     : 0;
   const isExpected = result.tipo === "Esperado";
   const moneda = result.moneda;
+
+  const countFields: { label: string; field: NumericField; max: number; step: number }[] = [
+    { label: "Asistentes Presenciales", field: "asistentesPresenciales", max: 5000, step: 10 },
+    { label: "Asistentes Virtuales", field: "asistentesVirtuales", max: 10000, step: 25 },
+    { label: "Sponsors Confirmados", field: "sponsorsConfirmados", max: 100, step: 1 },
+    { label: "Sponsors Potenciales", field: "sponsorsPotenciales", max: 100, step: 1 },
+  ];
+
+  const moneyFields: { label: string; field: NumericField; step: number }[] = [
+    { label: "Gastos Estimados", field: "gastosEstimados", step: moneda === "ARS" ? 100000 : 500 },
+    { label: "Precio Prom. Presencial", field: "precioPromPresencial", step: moneda === "ARS" ? 5000 : 5 },
+    { label: "Precio Prom. Virtual", field: "precioPromVirtual", step: moneda === "ARS" ? 5000 : 5 },
+    { label: "Monto Prom. Sponsor", field: "montoPromSponsor", step: moneda === "ARS" ? 50000 : 100 },
+  ];
+
+  function setField(field: NumericField, raw: string) {
+    const value = Math.max(0, Number(raw) || 0);
+    onUpdate({ [field]: value });
+  }
 
   return (
     <div className={cn("bg-white dark:bg-slate-900 rounded-xl border p-5 flex flex-col gap-4", st.border)}>
@@ -94,38 +129,52 @@ export function ScenarioCard({ result, expectedResult, onUpdate }: ScenarioCardP
       </button>
 
       {expanded && (
-        <div className="space-y-3 border-t border-slate-100 dark:border-slate-800 pt-3">
+        <div className="space-y-4 border-t border-slate-100 dark:border-slate-800 pt-3">
           <div>
             <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">Moneda del escenario</label>
             <MonedaSelect
               value={result.moneda}
               onChange={(v) => onUpdate({ moneda: v })}
-              className="bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-200"
+              className={inputCls}
             />
           </div>
-          {[
-            { label: "Asistentes Presenciales", field: "asistentesPresenciales" as const, max: 1000, step: 10, isMoney: false },
-            { label: "Asistentes Virtuales", field: "asistentesVirtuales" as const, max: 2000, step: 25, isMoney: false },
-            { label: "Sponsors Confirmados", field: "sponsorsConfirmados" as const, max: 20, step: 1, isMoney: false },
-            { label: "Sponsors Potenciales", field: "sponsorsPotenciales" as const, max: 20, step: 1, isMoney: false },
-            { label: "Gastos Estimados", field: "gastosEstimados" as const, max: 100000, step: 500, isMoney: true },
-            { label: "Precio Prom. Presencial", field: "precioPromPresencial" as const, max: 300, step: 5, isMoney: true },
-            { label: "Precio Prom. Virtual", field: "precioPromVirtual" as const, max: 150, step: 5, isMoney: true },
-            { label: "Monto Prom. Sponsor", field: "montoPromSponsor" as const, max: 10000, step: 100, isMoney: true },
-          ].map((item) => (
+
+          {countFields.map((item) => (
             <div key={item.field}>
               <div className="flex items-center justify-between mb-1">
                 <label className="text-xs text-slate-500 dark:text-slate-400">{item.label}</label>
-                <span className={cn("text-xs font-semibold", st.accent)}>
-                  {item.isMoney
-                    ? formatCurrency(result[item.field], moneda)
-                    : result[item.field]}
-                </span>
+                <span className={cn("text-xs font-semibold", st.accent)}>{result[item.field]}</span>
               </div>
-              <input type="range" min={0} max={item.max} step={item.step} value={result[item.field]}
-                onChange={(e) => onUpdate({ [item.field]: +e.target.value })} className="w-full accent-cyan-500" />
+              <input
+                type="range"
+                min={0}
+                max={item.max}
+                step={item.step}
+                value={Math.min(result[item.field], item.max)}
+                onChange={(e) => setField(item.field, e.target.value)}
+                className="w-full accent-cyan-500"
+              />
             </div>
           ))}
+
+          <div className="space-y-3 pt-1">
+            <p className="text-xs text-slate-400 dark:text-slate-500">
+              Montos en {moneda} — ingresá el valor exacto (sin límite de miles).
+            </p>
+            {moneyFields.map((item) => (
+              <div key={item.field}>
+                <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">{item.label}</label>
+                <Input
+                  type="number"
+                  min={0}
+                  step={item.step}
+                  value={result[item.field]}
+                  onChange={(e) => setField(item.field, e.target.value)}
+                  className={inputCls}
+                />
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
