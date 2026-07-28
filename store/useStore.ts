@@ -8,11 +8,8 @@ import type {
 } from "@/types";
 import {
   defaultConfig,
-  mockSponsors,
-  mockInscripciones,
-  mockGastos,
-  defaultEscenarios,
-} from "@/data/mockData";
+  emptyEscenarios,
+} from "@/data/defaults";
 import {
   saveConfig,
   saveSponsor,
@@ -23,7 +20,6 @@ import {
   removeGasto,
   saveEscenario,
   clearAllDataInDb,
-  resetToDefaultsInDb,
 } from "@/app/actions/data";
 import { syncFinanceSummary } from "@/app/actions/finance-summary";
 import type { FinanceSummary } from "@/types/finance-summary";
@@ -84,7 +80,6 @@ interface AppState {
   }) => void;
   refreshFinanceSummary: () => Promise<void>;
 
-  resetToDefaults: () => Promise<void>;
   clearAllData: () => Promise<void>;
 }
 
@@ -92,10 +87,10 @@ export const useStore = create<AppState>()((set, get) => ({
   isHydrated: false,
   isLoading: true,
   config: defaultConfig,
-  sponsors: mockSponsors,
-  inscripciones: mockInscripciones,
-  gastos: mockGastos,
-  escenarios: defaultEscenarios,
+  sponsors: [],
+  inscripciones: [],
+  gastos: [],
+  escenarios: emptyEscenarios,
   presentationMode: false,
   financeSummary: null,
   financeSummaryLoading: false,
@@ -259,16 +254,6 @@ export const useStore = create<AppState>()((set, get) => ({
         financeSummaryError:
           err instanceof Error ? err.message : "Error al sincronizar",
       });
-    }
-  },
-
-  resetToDefaults: async () => {
-    set({ isLoading: true });
-    try {
-      const data = await resetToDefaultsInDb();
-      set({ ...data, isLoading: false });
-    } catch {
-      set({ isLoading: false });
     }
   },
 

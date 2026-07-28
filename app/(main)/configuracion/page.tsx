@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Save, RotateCcw, Settings, Shield, Trash2, TriangleAlert } from "lucide-react";
+import { Save, Settings, Shield, Trash2, TriangleAlert } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { Header } from "@/components/layout/Header";
@@ -23,14 +23,13 @@ const selectContentCls = "bg-white dark:bg-slate-800 border-slate-200 dark:borde
 const selectItemCls = "text-slate-700 dark:text-slate-200 focus:bg-slate-100 dark:focus:bg-slate-700";
 
 export default function ConfiguracionPage() {
-  const { config, setConfig, resetToDefaults, clearAllData } = useStore();
+  const { config, setConfig, clearAllData } = useStore();
   const [form, setForm] = useState<EventConfig>({ ...config });
   const [saved, setSaved] = useState(false);
   const [showClearDialog, setShowClearDialog] = useState(false);
   const [clearDone, setClearDone] = useState(false);
 
   const [clearing, setClearing] = useState(false);
-  const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
     setForm({ ...config });
@@ -56,12 +55,6 @@ export default function ConfiguracionPage() {
     setShowClearDialog(false);
     setClearDone(true);
     setTimeout(() => setClearDone(false), 3000);
-  }
-
-  async function handleReset() {
-    setResetting(true);
-    await resetToDefaults();
-    setResetting(false);
   }
 
   return (
@@ -166,10 +159,6 @@ export default function ConfiguracionPage() {
         <div className="flex items-center gap-3">
           <Button onClick={handleSave} className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold gap-2">
             <Save className="w-4 h-4" />{saved ? "¡Guardado!" : "Guardar configuración"}
-          </Button>
-          <Button variant="outline" onClick={handleReset} disabled={resetting}
-            className="border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white bg-transparent gap-2">
-            <RotateCcw className="w-4 h-4" />{resetting ? "Restaurando..." : "Restaurar datos demo (borra todo)"}
           </Button>
         </div>
 

@@ -16,7 +16,7 @@ import { InscripcionCharts } from "@/components/inscripciones/InscripcionCharts"
 import { InscripcionSimulator } from "@/components/inscripciones/InscripcionSimulator";
 import type { Inscripcion } from "@/types";
 
-const EMPTY_BASE: Omit<Inscripcion, "id" | "moneda"> = { categoria: "Profesional", modalidad: "Presencial", precioUnitario: 100, cantidadConfirmada: 0, cantidadProyectada: 0 };
+const EMPTY_BASE: Omit<Inscripcion, "id" | "moneda"> = { categoria: "Profesional", modalidad: "Presencial", precioUnitario: 0, cantidadConfirmada: 0, cantidadProyectada: 0 };
 
 export default function InscripcionesPage() {
   const {

@@ -17,7 +17,7 @@ import type { Sponsor, SponsorCategoria, SponsorEstado, Moneda } from "@/types";
 
 const EMPTY_BASE: Omit<Sponsor, "id" | "moneda"> = {
   empresa: "", contacto: "", email: "", telefono: "", categoria: "Plata", estado: "Lead",
-  montoEstimado: 1500, montoConfirmado: 0, probabilidad: 25, responsable: "",
+  montoEstimado: 0, montoConfirmado: 0, probabilidad: 50, responsable: "",
   ultimoContacto: new Date().toISOString().split("T")[0], proximaAccion: "", notas: "",
 };
 

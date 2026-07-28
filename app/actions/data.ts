@@ -16,11 +16,8 @@ import {
 } from "@/lib/supabase/mappers";
 import {
   defaultConfig,
-  mockSponsors,
-  mockInscripciones,
-  mockGastos,
-  defaultEscenarios,
-} from "@/data/mockData";
+  buildEmptyEscenarios,
+} from "@/data/defaults";
 import type {
   EventConfig,
   Sponsor,
@@ -37,42 +34,30 @@ export interface AppData {
   escenarios: EscenarioConfig[];
 }
 
+async function ensureEscenarios(
+  supabase: ReturnType<typeof createSupabaseServer>,
+  moneda: EventConfig["moneda"],
+  existing: EscenarioConfig[] | undefined
+): Promise<EscenarioConfig[]> {
+  if (existing && existing.length > 0) return existing;
+
+  const empty = buildEmptyEscenarios(moneda);
+  await supabase.from("escenarios").upsert(empty.map(escenarioToRow));
+  return empty;
+}
+
 async function seedInitialDatabase(): Promise<AppData> {
   const supabase = createSupabaseServer();
 
   await supabase.from("event_config").upsert(configToRow(defaultConfig));
-  await supabase
-    .from("escenarios")
-    .upsert(defaultEscenarios.map(escenarioToRow));
+  const escenarios = await ensureEscenarios(supabase, defaultConfig.moneda, []);
 
   return {
     config: defaultConfig,
     sponsors: [],
     inscripciones: [],
     gastos: [],
-    escenarios: defaultEscenarios,
-  };
-}
-
-async function seedDatabase() {
-  const supabase = createSupabaseServer();
-
-  await supabase.from("event_config").upsert(configToRow(defaultConfig));
-  await supabase.from("sponsors").upsert(mockSponsors.map(sponsorToRow));
-  await supabase
-    .from("inscripciones")
-    .upsert(mockInscripciones.map(inscripcionToRow));
-  await supabase.from("gastos").upsert(mockGastos.map(gastoToRow));
-  await supabase
-    .from("escenarios")
-    .upsert(defaultEscenarios.map(escenarioToRow));
-
-  return {
-    config: defaultConfig,
-    sponsors: mockSponsors,
-    inscripciones: mockInscripciones,
-    gastos: mockGastos,
-    escenarios: defaultEscenarios,
+    escenarios,
   };
 }
 
@@ -112,17 +97,24 @@ export async function fetchAllData(): Promise<AppData> {
     return seedInitialDatabase();
   }
 
+  const config = configRes.data ? mapConfig(configRes.data) : defaultConfig;
+  const mappedEscenarios =
+    escenariosRes.data && escenariosRes.data.length > 0
+      ? escenariosRes.data.map(mapEscenario)
+      : undefined;
+
+  const escenarios = await ensureEscenarios(
+    supabase,
+    config.moneda,
+    mappedEscenarios
+  );
+
   return {
-    config: configRes.data
-      ? mapConfig(configRes.data)
-      : defaultConfig,
+    config,
     sponsors: (sponsorsRes.data ?? []).map(mapSponsor),
     inscripciones: (inscripcionesRes.data ?? []).map(mapInscripcion),
     gastos: (gastosRes.data ?? []).map(mapGasto),
-    escenarios:
-      escenariosRes.data && escenariosRes.data.length > 0
-        ? escenariosRes.data.map(mapEscenario)
-        : defaultEscenarios,
+    escenarios,
   };
 }
 
@@ -196,34 +188,4 @@ export async function clearAllDataInDb() {
     supabase.from("inscripciones").delete().neq("id", ""),
     supabase.from("gastos").delete().neq("id", ""),
   ]);
-}
-
-export async function resetToDefaultsInDb(): Promise<AppData> {
-  await requireAuth();
-  const supabase = createSupabaseServer();
-
-  await Promise.all([
-    supabase.from("sponsors").delete().neq("id", ""),
-    supabase.from("inscripciones").delete().neq("id", ""),
-    supabase.from("gastos").delete().neq("id", ""),
-    supabase.from("escenarios").delete().neq("tipo", ""),
-  ]);
-
-  await supabase.from("event_config").upsert(configToRow(defaultConfig));
-  await supabase.from("sponsors").insert(mockSponsors.map(sponsorToRow));
-  await supabase
-    .from("inscripciones")
-    .insert(mockInscripciones.map(inscripcionToRow));
-  await supabase.from("gastos").insert(mockGastos.map(gastoToRow));
-  await supabase
-    .from("escenarios")
-    .insert(defaultEscenarios.map(escenarioToRow));
-
-  return {
-    config: defaultConfig,
-    sponsors: mockSponsors,
-    inscripciones: mockInscripciones,
-    gastos: mockGastos,
-    escenarios: defaultEscenarios,
-  };
 }
