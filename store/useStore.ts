@@ -53,17 +53,17 @@ interface AppState {
 
   setConfig: (config: Partial<EventConfig>) => void;
 
-  addSponsor: (sponsor: Sponsor) => void;
-  updateSponsor: (id: string, updates: Partial<Sponsor>) => void;
-  deleteSponsor: (id: string) => void;
+  addSponsor: (sponsor: Sponsor) => Promise<void>;
+  updateSponsor: (id: string, updates: Partial<Sponsor>) => Promise<void>;
+  deleteSponsor: (id: string) => Promise<void>;
 
-  addInscripcion: (inscripcion: Inscripcion) => void;
-  updateInscripcion: (id: string, updates: Partial<Inscripcion>) => void;
-  deleteInscripcion: (id: string) => void;
+  addInscripcion: (inscripcion: Inscripcion) => Promise<void>;
+  updateInscripcion: (id: string, updates: Partial<Inscripcion>) => Promise<void>;
+  deleteInscripcion: (id: string) => Promise<void>;
 
-  addGasto: (gasto: Gasto) => void;
-  updateGasto: (id: string, updates: Partial<Gasto>) => void;
-  deleteGasto: (id: string) => void;
+  addGasto: (gasto: Gasto) => Promise<void>;
+  updateGasto: (id: string, updates: Partial<Gasto>) => Promise<void>;
+  deleteGasto: (id: string) => Promise<void>;
 
   updateEscenario: (
     tipo: EscenarioConfig["tipo"],
@@ -117,97 +117,154 @@ export const useStore = create<AppState>()((set, get) => ({
     });
   },
 
-  addSponsor: (sponsor) => {
+  addSponsor: async (sponsor) => {
     set((state) => ({ sponsors: [...state.sponsors, sponsor], saveError: null }));
-    saveSponsor(sponsor).catch((err: Error) => {
-      set({ saveError: err.message || "Error al guardar sponsor" });
-    });
+    try {
+      await saveSponsor(sponsor);
+    } catch (err) {
+      set((state) => ({
+        sponsors: state.sponsors.filter((s) => s.id !== sponsor.id),
+        saveError: err instanceof Error ? err.message : "Error al guardar sponsor",
+      }));
+      throw err;
+    }
   },
 
-  updateSponsor: (id, updates) => {
-    const updated = get().sponsors.map((s) =>
+  updateSponsor: async (id, updates) => {
+    const previous = get().sponsors;
+    const updated = previous.map((s) =>
       s.id === id ? { ...s, ...updates } : s
     );
     set({ sponsors: updated, saveError: null });
     const sponsor = updated.find((s) => s.id === id);
-    if (sponsor) {
-      saveSponsor(sponsor).catch((err: Error) => {
-        set({ saveError: err.message || "Error al guardar sponsor" });
+    if (!sponsor) return;
+    try {
+      await saveSponsor(sponsor);
+    } catch (err) {
+      set({
+        sponsors: previous,
+        saveError: err instanceof Error ? err.message : "Error al guardar sponsor",
       });
+      throw err;
     }
   },
 
-  deleteSponsor: (id) => {
-    set((state) => ({
-      sponsors: state.sponsors.filter((s) => s.id !== id),
+  deleteSponsor: async (id) => {
+    const previous = get().sponsors;
+    set({
+      sponsors: previous.filter((s) => s.id !== id),
       saveError: null,
-    }));
-    removeSponsor(id).catch((err: Error) => {
-      set({ saveError: err.message || "Error al eliminar sponsor" });
     });
+    try {
+      await removeSponsor(id);
+    } catch (err) {
+      set({
+        sponsors: previous,
+        saveError: err instanceof Error ? err.message : "Error al eliminar sponsor",
+      });
+      throw err;
+    }
   },
 
-  addInscripcion: (inscripcion) => {
+  addInscripcion: async (inscripcion) => {
     set((state) => ({
       inscripciones: [...state.inscripciones, inscripcion],
       saveError: null,
     }));
-    saveInscripcion(inscripcion).catch((err: Error) => {
-      set({ saveError: err.message || "Error al guardar inscripción" });
-    });
+    try {
+      await saveInscripcion(inscripcion);
+    } catch (err) {
+      set((state) => ({
+        inscripciones: state.inscripciones.filter((i) => i.id !== inscripcion.id),
+        saveError: err instanceof Error ? err.message : "Error al guardar inscripción",
+      }));
+      throw err;
+    }
   },
 
-  updateInscripcion: (id, updates) => {
-    const updated = get().inscripciones.map((i) =>
+  updateInscripcion: async (id, updates) => {
+    const previous = get().inscripciones;
+    const updated = previous.map((i) =>
       i.id === id ? { ...i, ...updates } : i
     );
     set({ inscripciones: updated, saveError: null });
     const inscripcion = updated.find((i) => i.id === id);
-    if (inscripcion) {
-      saveInscripcion(inscripcion).catch((err: Error) => {
-        set({ saveError: err.message || "Error al guardar inscripción" });
+    if (!inscripcion) return;
+    try {
+      await saveInscripcion(inscripcion);
+    } catch (err) {
+      set({
+        inscripciones: previous,
+        saveError: err instanceof Error ? err.message : "Error al guardar inscripción",
       });
+      throw err;
     }
   },
 
-  deleteInscripcion: (id) => {
-    set((state) => ({
-      inscripciones: state.inscripciones.filter((i) => i.id !== id),
+  deleteInscripcion: async (id) => {
+    const previous = get().inscripciones;
+    set({
+      inscripciones: previous.filter((i) => i.id !== id),
       saveError: null,
-    }));
-    removeInscripcion(id).catch((err: Error) => {
-      set({ saveError: err.message || "Error al eliminar inscripción" });
     });
+    try {
+      await removeInscripcion(id);
+    } catch (err) {
+      set({
+        inscripciones: previous,
+        saveError: err instanceof Error ? err.message : "Error al eliminar inscripción",
+      });
+      throw err;
+    }
   },
 
-  addGasto: (gasto) => {
+  addGasto: async (gasto) => {
     set((state) => ({ gastos: [...state.gastos, gasto], saveError: null }));
-    saveGasto(gasto).catch((err: Error) => {
-      set({ saveError: err.message || "Error al guardar gasto" });
-    });
+    try {
+      await saveGasto(gasto);
+    } catch (err) {
+      set((state) => ({
+        gastos: state.gastos.filter((g) => g.id !== gasto.id),
+        saveError: err instanceof Error ? err.message : "Error al guardar gasto",
+      }));
+      throw err;
+    }
   },
 
-  updateGasto: (id, updates) => {
-    const updated = get().gastos.map((g) =>
+  updateGasto: async (id, updates) => {
+    const previous = get().gastos;
+    const updated = previous.map((g) =>
       g.id === id ? { ...g, ...updates } : g
     );
     set({ gastos: updated, saveError: null });
     const gasto = updated.find((g) => g.id === id);
-    if (gasto) {
-      saveGasto(gasto).catch((err: Error) => {
-        set({ saveError: err.message || "Error al guardar gasto" });
+    if (!gasto) return;
+    try {
+      await saveGasto(gasto);
+    } catch (err) {
+      set({
+        gastos: previous,
+        saveError: err instanceof Error ? err.message : "Error al guardar gasto",
       });
+      throw err;
     }
   },
 
-  deleteGasto: (id) => {
-    set((state) => ({
-      gastos: state.gastos.filter((g) => g.id !== id),
+  deleteGasto: async (id) => {
+    const previous = get().gastos;
+    set({
+      gastos: previous.filter((g) => g.id !== id),
       saveError: null,
-    }));
-    removeGasto(id).catch((err: Error) => {
-      set({ saveError: err.message || "Error al eliminar gasto" });
     });
+    try {
+      await removeGasto(id);
+    } catch (err) {
+      set({
+        gastos: previous,
+        saveError: err instanceof Error ? err.message : "Error al eliminar gasto",
+      });
+      throw err;
+    }
   },
 
   updateEscenario: (tipo, updates) => {

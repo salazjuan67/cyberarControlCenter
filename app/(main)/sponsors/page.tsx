@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Plus, Building2, DollarSign, TrendingUp, Filter, Search } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import { calcSponsorsConfirmados, calcSponsorsPotencial, calcSponsorsPonderado, getActiveMonedas } from "@/lib/calculations";
@@ -40,9 +40,10 @@ export default function SponsorsPage() {
     (s) => s.montoEstimado
   );
 
-  function emptySponsor(): Omit<Sponsor, "id"> {
-    return { ...EMPTY_BASE, moneda: config.moneda };
-  }
+  const defaultSponsorValues = useMemo(
+    () => ({ ...EMPTY_BASE, moneda: config.moneda }),
+    [config.moneda]
+  );
 
   function formatKpiByMoneda(
     calc: (moneda: Moneda) => number
@@ -57,9 +58,14 @@ export default function SponsorsPage() {
     return matchSearch && (filterEstado === "Todos" || s.estado === filterEstado) && (filterCategoria === "Todas" || s.categoria === filterCategoria);
   });
 
-  function handleSave(data: Omit<Sponsor, "id">) {
-    editingSponsor ? updateSponsor(editingSponsor.id, data) : addSponsor({ ...data, id: `s${Date.now()}` });
-    setDialogOpen(false); setEditingSponsor(null);
+  async function handleSave(data: Omit<Sponsor, "id">) {
+    if (editingSponsor) {
+      await updateSponsor(editingSponsor.id, data);
+    } else {
+      await addSponsor({ ...data, id: `s${Date.now()}` });
+    }
+    setDialogOpen(false);
+    setEditingSponsor(null);
   }
 
   const selectCls = "h-8 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm";
@@ -119,7 +125,7 @@ export default function SponsorsPage() {
           : <SponsorPipeline sponsors={filtered} onEdit={(s) => { setEditingSponsor(s); setDialogOpen(true); }} />
         }
       </div>
-      <SponsorDialog open={dialogOpen} onOpenChange={setDialogOpen} initial={editingSponsor || undefined} defaultValues={emptySponsor()} onSave={handleSave} />
+      <SponsorDialog open={dialogOpen} onOpenChange={setDialogOpen} initial={editingSponsor || undefined} defaultValues={defaultSponsorValues} onSave={handleSave} />
     </div>
   );
 }

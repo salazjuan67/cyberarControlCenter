@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Plus, Wallet, TrendingDown, AlertTriangle, CheckCircle2, Search, Filter } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import { calcTotalPresupuestado, calcTotalGastosReal, calcDesvioPorcentual, getActiveMonedas } from "@/lib/calculations";
@@ -34,9 +34,10 @@ export default function PresupuestoPage() {
     return activeMonedas.map((m) => formatCurrency(calc(m), m)).join(" · ");
   }
 
-  function emptyGasto(): Omit<Gasto, "id"> {
-    return { ...EMPTY_BASE, moneda: config.moneda };
-  }
+  const defaultGastoValues = useMemo(
+    () => ({ ...EMPTY_BASE, moneda: config.moneda }),
+    [config.moneda]
+  );
 
   const primaryMoneda = activeMonedas[0] ?? config.moneda;
   const desvio = calcDesvioPorcentual(gastos, primaryMoneda);
@@ -51,9 +52,14 @@ export default function PresupuestoPage() {
     return matchSearch && (filterCategoria === "Todas" || g.categoria === filterCategoria) && (filterEstado === "Todos" || g.estado === filterEstado);
   });
 
-  function handleSave(data: Omit<Gasto, "id">) {
-    editingGasto ? updateGasto(editingGasto.id, data) : addGasto({ ...data, id: `g${Date.now()}` });
-    setDialogOpen(false); setEditingGasto(null);
+  async function handleSave(data: Omit<Gasto, "id">) {
+    if (editingGasto) {
+      await updateGasto(editingGasto.id, data);
+    } else {
+      await addGasto({ ...data, id: `g${Date.now()}` });
+    }
+    setDialogOpen(false);
+    setEditingGasto(null);
   }
 
   const selectCls = "h-8 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm";
@@ -112,7 +118,7 @@ export default function PresupuestoPage() {
 
         <GastoTable gastos={filtered} onEdit={(g) => { setEditingGasto(g); setDialogOpen(true); }} onDelete={deleteGasto} />
       </div>
-      <GastoDialog open={dialogOpen} onOpenChange={setDialogOpen} initial={editingGasto || undefined} defaultValues={emptyGasto()} onSave={handleSave} />
+      <GastoDialog open={dialogOpen} onOpenChange={setDialogOpen} initial={editingGasto || undefined} defaultValues={defaultGastoValues} onSave={handleSave} />
     </div>
   );
 }

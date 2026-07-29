@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Sponsor, SponsorCategoria, SponsorEstado } from "@/types";
 import { MonedaSelect } from "@/components/shared/MonedaSelect";
+import { useDialogForm, parseAmount } from "@/lib/useDialogForm";
 
 const inputCls = "bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500";
 const selectContentCls = "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700";
@@ -18,16 +19,24 @@ interface SponsorDialogProps {
   onOpenChange: (open: boolean) => void;
   initial?: Sponsor;
   defaultValues: Omit<Sponsor, "id">;
-  onSave: (data: Omit<Sponsor, "id">) => void;
+  onSave: (data: Omit<Sponsor, "id">) => void | Promise<void>;
 }
 
 export function SponsorDialog({ open, onOpenChange, initial, defaultValues, onSave }: SponsorDialogProps) {
-  const [form, setForm] = useState<Omit<Sponsor, "id">>(initial ? { ...initial } : { ...defaultValues });
-
-  useEffect(() => { setForm(initial ? { ...initial } : { ...defaultValues }); }, [initial, open, defaultValues]);
+  const [form, setForm] = useDialogForm(open, initial, defaultValues);
+  const [saving, setSaving] = useState(false);
 
   function set(field: keyof Omit<Sponsor, "id">, value: string | number) {
     setForm((prev) => ({ ...prev, [field]: value }));
+  }
+
+  async function handleSubmit() {
+    setSaving(true);
+    try {
+      await onSave(form);
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -84,12 +93,26 @@ export function SponsorDialog({ open, onOpenChange, initial, defaultValues, onSa
             />
           </div>
           <div>
-            <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">Monto Estimado</label>
-            <Input type="number" value={form.montoEstimado} onChange={(e) => set("montoEstimado", +e.target.value)} className={inputCls} />
+            <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">Monto Estimado ({form.moneda})</label>
+            <Input
+              type="text"
+              inputMode="numeric"
+              value={form.montoEstimado || ""}
+              onChange={(e) => set("montoEstimado", parseAmount(e.target.value))}
+              className={inputCls}
+              placeholder="0"
+            />
           </div>
           <div>
-            <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">Monto Confirmado</label>
-            <Input type="number" value={form.montoConfirmado} onChange={(e) => set("montoConfirmado", +e.target.value)} className={inputCls} />
+            <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">Monto Confirmado ({form.moneda})</label>
+            <Input
+              type="text"
+              inputMode="numeric"
+              value={form.montoConfirmado || ""}
+              onChange={(e) => set("montoConfirmado", parseAmount(e.target.value))}
+              className={inputCls}
+              placeholder="0"
+            />
           </div>
           <div>
             <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">Probabilidad: {form.probabilidad}%</label>
@@ -110,11 +133,11 @@ export function SponsorDialog({ open, onOpenChange, initial, defaultValues, onSa
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}
             className="border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-transparent">Cancelar</Button>
-          <Button onClick={() => onSave(form)} disabled={!form.empresa}
+          <Button onClick={() => void handleSubmit()} disabled={!form.empresa || saving}
             className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold">
-            {initial ? "Guardar cambios" : "Agregar sponsor"}
+            {saving ? "Guardando..." : initial ? "Guardar cambios" : "Agregar sponsor"}
           </Button>
         </DialogFooter>
       </DialogContent>

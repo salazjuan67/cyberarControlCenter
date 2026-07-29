@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Gasto, GastoCategoria, GastoEstado } from "@/types";
 import { MonedaSelect } from "@/components/shared/MonedaSelect";
+import { useDialogForm, parseAmount } from "@/lib/useDialogForm";
 
 const inputCls = "bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500";
 const selectContentCls = "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700";
@@ -21,13 +22,25 @@ interface GastoDialogProps {
   onOpenChange: (open: boolean) => void;
   initial?: Gasto;
   defaultValues: Omit<Gasto, "id">;
-  onSave: (data: Omit<Gasto, "id">) => void;
+  onSave: (data: Omit<Gasto, "id">) => void | Promise<void>;
 }
 
 export function GastoDialog({ open, onOpenChange, initial, defaultValues, onSave }: GastoDialogProps) {
-  const [form, setForm] = useState<Omit<Gasto, "id">>(initial ? { ...initial } : { ...defaultValues });
-  useEffect(() => { setForm(initial ? { ...initial } : { ...defaultValues }); }, [initial, open, defaultValues]);
-  function set(field: keyof Omit<Gasto, "id">, value: string | number) { setForm((p) => ({ ...p, [field]: value })); }
+  const [form, setForm] = useDialogForm(open, initial, defaultValues);
+  const [saving, setSaving] = useState(false);
+
+  function set(field: keyof Omit<Gasto, "id">, value: string | number) {
+    setForm((p) => ({ ...p, [field]: value }));
+  }
+
+  async function handleSubmit() {
+    setSaving(true);
+    try {
+      await onSave(form);
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -60,19 +73,27 @@ export function GastoDialog({ open, onOpenChange, initial, defaultValues, onSave
           </div>
           <div className="col-span-2">
             <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">Moneda</label>
-            <MonedaSelect
-              value={form.moneda}
-              onChange={(v) => set("moneda", v)}
+            <MonedaSelect value={form.moneda} onChange={(v) => set("moneda", v)} className={inputCls} />
+          </div>
+          <div>
+            <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">Presupuesto Estimado ({form.moneda})</label>
+            <Input
+              type="text"
+              inputMode="numeric"
+              value={form.presupuestoEstimado || ""}
+              onChange={(e) => set("presupuestoEstimado", parseAmount(e.target.value))}
               className={inputCls}
             />
           </div>
           <div>
-            <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">Presupuesto Estimado</label>
-            <Input type="number" value={form.presupuestoEstimado} onChange={(e) => set("presupuestoEstimado", +e.target.value)} className={inputCls} />
-          </div>
-          <div>
-            <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">Costo Real</label>
-            <Input type="number" value={form.costoReal} onChange={(e) => set("costoReal", +e.target.value)} className={inputCls} />
+            <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">Costo Real ({form.moneda})</label>
+            <Input
+              type="text"
+              inputMode="numeric"
+              value={form.costoReal || ""}
+              onChange={(e) => set("costoReal", parseAmount(e.target.value))}
+              className={inputCls}
+            />
           </div>
           <div>
             <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">Proveedor</label>
@@ -88,11 +109,11 @@ export function GastoDialog({ open, onOpenChange, initial, defaultValues, onSave
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}
             className="border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-transparent">Cancelar</Button>
-          <Button onClick={() => onSave(form)} disabled={!form.concepto}
+          <Button onClick={() => void handleSubmit()} disabled={!form.concepto || saving}
             className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold">
-            {initial ? "Guardar cambios" : "Agregar gasto"}
+            {saving ? "Guardando..." : initial ? "Guardar cambios" : "Agregar gasto"}
           </Button>
         </DialogFooter>
       </DialogContent>

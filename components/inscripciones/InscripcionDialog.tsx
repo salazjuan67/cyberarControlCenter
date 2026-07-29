@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Inscripcion, InscripcionCategoria, InscripcionModalidad } from "@/types";
 import { MonedaSelect } from "@/components/shared/MonedaSelect";
+import { useDialogForm, parseAmount } from "@/lib/useDialogForm";
 
 const inputCls = "bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-200";
 const selectContentCls = "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700";
@@ -20,13 +21,25 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   initial?: Inscripcion;
   defaultValues: Omit<Inscripcion, "id">;
-  onSave: (data: Omit<Inscripcion, "id">) => void;
+  onSave: (data: Omit<Inscripcion, "id">) => void | Promise<void>;
 }
 
 export function InscripcionDialog({ open, onOpenChange, initial, defaultValues, onSave }: Props) {
-  const [form, setForm] = useState<Omit<Inscripcion, "id">>(initial ? { ...initial } : { ...defaultValues });
-  useEffect(() => { setForm(initial ? { ...initial } : { ...defaultValues }); }, [initial, open, defaultValues]);
-  function set(field: keyof Omit<Inscripcion, "id">, value: string | number) { setForm((p) => ({ ...p, [field]: value })); }
+  const [form, setForm] = useDialogForm(open, initial, defaultValues);
+  const [saving, setSaving] = useState(false);
+
+  function set(field: keyof Omit<Inscripcion, "id">, value: string | number) {
+    setForm((p) => ({ ...p, [field]: value }));
+  }
+
+  async function handleSubmit() {
+    setSaving(true);
+    try {
+      await onSave(form);
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -55,15 +68,17 @@ export function InscripcionDialog({ open, onOpenChange, initial, defaultValues, 
           </div>
           <div className="col-span-2">
             <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">Moneda</label>
-            <MonedaSelect
-              value={form.moneda}
-              onChange={(v) => set("moneda", v)}
-              className={inputCls}
-            />
+            <MonedaSelect value={form.moneda} onChange={(v) => set("moneda", v)} className={inputCls} />
           </div>
           <div className="col-span-2">
-            <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">Precio Unitario</label>
-            <Input type="number" value={form.precioUnitario} onChange={(e) => set("precioUnitario", +e.target.value)} className={inputCls} />
+            <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">Precio Unitario ({form.moneda})</label>
+            <Input
+              type="text"
+              inputMode="numeric"
+              value={form.precioUnitario || ""}
+              onChange={(e) => set("precioUnitario", parseAmount(e.target.value))}
+              className={inputCls}
+            />
           </div>
           <div>
             <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">Cantidad Confirmada</label>
@@ -75,10 +90,10 @@ export function InscripcionDialog({ open, onOpenChange, initial, defaultValues, 
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}
             className="border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 bg-transparent">Cancelar</Button>
-          <Button onClick={() => onSave(form)} className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold">
-            {initial ? "Guardar cambios" : "Agregar categoría"}
+          <Button onClick={() => void handleSubmit()} disabled={saving} className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold">
+            {saving ? "Guardando..." : initial ? "Guardar cambios" : "Agregar categoría"}
           </Button>
         </DialogFooter>
       </DialogContent>

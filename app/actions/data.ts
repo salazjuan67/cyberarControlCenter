@@ -130,7 +130,9 @@ export async function saveConfig(config: EventConfig) {
 export async function saveSponsor(sponsor: Sponsor) {
   await requireAuth();
   const supabase = createSupabaseServer();
-  const { error } = await supabase.from("sponsors").upsert(sponsorToRow(sponsor));
+  const { error } = await supabase
+    .from("sponsors")
+    .upsert(sponsorToRow(sponsor), { onConflict: "id" });
   if (error) throw new Error(error.message);
 }
 
@@ -146,7 +148,7 @@ export async function saveInscripcion(inscripcion: Inscripcion) {
   const supabase = createSupabaseServer();
   const { error } = await supabase
     .from("inscripciones")
-    .upsert(inscripcionToRow(inscripcion));
+    .upsert(inscripcionToRow(inscripcion), { onConflict: "id" });
   if (error) throw new Error(error.message);
 }
 
@@ -160,7 +162,9 @@ export async function removeInscripcion(id: string) {
 export async function saveGasto(gasto: Gasto) {
   await requireAuth();
   const supabase = createSupabaseServer();
-  const { error } = await supabase.from("gastos").upsert(gastoToRow(gasto));
+  const { error } = await supabase
+    .from("gastos")
+    .upsert(gastoToRow(gasto), { onConflict: "id" });
   if (error) throw new Error(error.message);
 }
 
@@ -176,7 +180,7 @@ export async function saveEscenario(escenario: EscenarioConfig) {
   const supabase = createSupabaseServer();
   const { error } = await supabase
     .from("escenarios")
-    .upsert(escenarioToRow(escenario));
+    .upsert(escenarioToRow(escenario), { onConflict: "tipo" });
   if (error) throw new Error(error.message);
 }
 

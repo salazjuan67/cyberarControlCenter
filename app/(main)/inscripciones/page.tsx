@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Plus, Users, Monitor, DollarSign, TrendingUp } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import { calcTotalInscripcionesConfirmado, calcTotalInscripcionesProyectado, calcAsistentesPresenciales, calcAsistentesVirtuales, getActiveMonedas } from "@/lib/calculations";
@@ -41,15 +41,22 @@ export default function InscripcionesPage() {
     return activeMonedas.map((m) => formatCurrency(calc(m), m)).join(" · ");
   }
 
-  function emptyInscripcion(): Omit<Inscripcion, "id"> {
-    return { ...EMPTY_BASE, moneda: config.moneda };
-  }
+  const defaultInscripcionValues = useMemo(
+    () => ({ ...EMPTY_BASE, moneda: config.moneda }),
+    [config.moneda]
+  );
+
   const presConf = calcAsistentesPresenciales(inscripciones, "confirmada", undefined, financeSummary);
   const virtConf = calcAsistentesVirtuales(inscripciones, "confirmada", undefined, financeSummary);
 
-  function handleSave(data: Omit<Inscripcion, "id">) {
-    editing ? updateInscripcion(editing.id, data) : addInscripcion({ ...data, id: `i${Date.now()}` });
-    setDialogOpen(false); setEditing(null);
+  async function handleSave(data: Omit<Inscripcion, "id">) {
+    if (editing) {
+      await updateInscripcion(editing.id, data);
+    } else {
+      await addInscripcion({ ...data, id: `i${Date.now()}` });
+    }
+    setDialogOpen(false);
+    setEditing(null);
   }
 
   return (
@@ -88,7 +95,7 @@ export default function InscripcionesPage() {
         </div>
         <InscripcionTable inscripciones={inscripciones} onEdit={(i) => { setEditing(i); setDialogOpen(true); }} onDelete={deleteInscripcion} />
       </div>
-      <InscripcionDialog open={dialogOpen} onOpenChange={setDialogOpen} initial={editing || undefined} defaultValues={emptyInscripcion()} onSave={handleSave} />
+      <InscripcionDialog open={dialogOpen} onOpenChange={setDialogOpen} initial={editing || undefined} defaultValues={defaultInscripcionValues} onSave={handleSave} />
     </div>
   );
 }
