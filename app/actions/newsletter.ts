@@ -30,6 +30,7 @@ import type {
   NewsletterAudience,
   NewsletterCampaign,
   NewsletterCampaignStats,
+  NewsletterCampaignDetail,
   NewsletterPreview,
   NewsletterStatus,
   NewsletterSummaryDraft,
@@ -37,6 +38,7 @@ import type {
   SendNewsletterResult,
   SendTestEmailInput,
   SendTestEmailResult,
+  SponsorEmailHistoryEntry,
 } from "@/types/newsletter";
 import type { EventConfig, Gasto, Inscripcion, Sponsor } from "@/types";
 
@@ -121,10 +123,99 @@ export async function getNewsletterCampaigns(): Promise<NewsletterCampaign[]> {
     .from("newsletter_campaigns")
     .select("*")
     .order("created_at", { ascending: false })
-    .limit(10);
+    .limit(50);
 
   if (error) throw new Error(error.message);
   return (data ?? []).map(mapCampaign);
+}
+
+export async function getNewsletterCampaignDetail(
+  campaignId: string
+): Promise<NewsletterCampaignDetail | null> {
+  await requireAuth();
+  const supabase = createSupabaseServer();
+
+  const { data: campaignRow, error: campaignError } = await supabase
+    .from("newsletter_campaigns")
+    .select("*")
+    .eq("id", campaignId)
+    .maybeSingle();
+
+  if (campaignError) throw new Error(campaignError.message);
+  if (!campaignRow) return null;
+
+  const campaign = mapCampaign(campaignRow);
+
+  const { data: deliveries, error: deliveriesError } = await supabase
+    .from("newsletter_deliveries")
+    .select("*")
+    .eq("campaign_id", campaignId)
+    .order("empresa", { ascending: true });
+
+  if (deliveriesError) throw new Error(deliveriesError.message);
+
+  const mappedDeliveries = (deliveries ?? []).map(mapDelivery);
+  const stats = buildCampaignStats(campaign, mappedDeliveries);
+
+  return { campaign, stats, deliveries: mappedDeliveries };
+}
+
+export async function getSponsorEmailHistory(
+  sponsorId: string,
+  email?: string
+): Promise<SponsorEmailHistoryEntry[]> {
+  await requireAuth();
+  const supabase = createSupabaseServer();
+
+  let query = supabase
+    .from("newsletter_deliveries")
+    .select(
+      "id, campaign_id, recipient_email, status, sent_at, delivered_at, bounced_at, bounce_reason"
+    )
+    .order("sent_at", { ascending: false, nullsFirst: false });
+
+  const normalizedEmail = email?.trim().toLowerCase();
+  if (normalizedEmail) {
+    query = query.or(`sponsor_id.eq.${sponsorId},recipient_email.eq.${normalizedEmail}`);
+  } else {
+    query = query.eq("sponsor_id", sponsorId);
+  }
+
+  const { data: deliveries, error } = await query.limit(50);
+  if (error) throw new Error(error.message);
+  if (!deliveries?.length) return [];
+
+  const campaignIds = [...new Set(deliveries.map((row) => row.campaign_id as string))];
+  const { data: campaigns, error: campaignsError } = await supabase
+    .from("newsletter_campaigns")
+    .select("id, subject, created_at")
+    .in("id", campaignIds);
+
+  if (campaignsError) throw new Error(campaignsError.message);
+
+  const campaignMap = new Map(
+    (campaigns ?? []).map((row) => [
+      row.id as string,
+      { subject: row.subject as string, createdAt: row.created_at as string },
+    ])
+  );
+
+  return deliveries.map((row) => {
+    const campaign = campaignMap.get(row.campaign_id as string);
+
+    return {
+      deliveryId: row.id as string,
+      campaignId: row.campaign_id as string,
+      subject: campaign?.subject ?? "Newsletter",
+      campaignDate: campaign?.createdAt ?? "",
+      recipientEmail: row.recipient_email as string,
+      status: row.status as SponsorEmailHistoryEntry["status"],
+      sentAt: (row.sent_at as string) ?? "",
+      deliveredAt: (row.delivered_at as string) ?? "",
+      bouncedAt: (row.bounced_at as string) ?? "",
+      bounceReason: (row.bounce_reason as string) ?? "",
+    };
+  });
 }
 
 export async function getNewsletterCampaignStats(

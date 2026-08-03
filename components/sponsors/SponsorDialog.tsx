@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Sponsor, SponsorCategoria, SponsorEstado } from "@/types";
 import { MonedaSelect } from "@/components/shared/MonedaSelect";
+import { SponsorEmailHistory } from "@/components/sponsors/SponsorEmailHistory";
 import { useDialogForm, parseAmount } from "@/lib/useDialogForm";
 
 const inputCls = "bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500";
@@ -143,6 +144,9 @@ export function SponsorDialog({ open, onOpenChange, initial, defaultValues, onSa
             <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">Notas</label>
             <Textarea value={form.notas} onChange={(e) => set("notas", e.target.value)} rows={3} className={`${inputCls} resize-none`} />
           </div>
+          {initial?.id && (
+            <SponsorEmailHistory sponsorId={initial.id} email={form.email} />
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}

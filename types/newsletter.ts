@@ -100,3 +100,22 @@ export interface NewsletterDeliveryRow {
   bounceReason: string;
   lastEventAt: string;
 }
+
+export interface NewsletterCampaignDetail {
+  campaign: NewsletterCampaign;
+  stats: NewsletterCampaignStats;
+  deliveries: NewsletterDeliveryRow[];
+}
+
+export interface SponsorEmailHistoryEntry {
+  deliveryId: string;
+  campaignId: string;
+  subject: string;
+  campaignDate: string;
+  recipientEmail: string;
+  status: NewsletterDeliveryStatus;
+  sentAt: string;
+  deliveredAt: string;
+  bouncedAt: string;
+  bounceReason: string;
+}
