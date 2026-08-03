@@ -2,21 +2,13 @@
 
 import { useActionState } from "react";
 import { login } from "@/app/actions/auth";
-import Image from "next/image";
-import { useTheme } from "@/components/providers/ThemeProvider";
+import { CyberARLogo } from "@/components/brand/CyberARLogo";
 import { Eye, EyeOff, Lock, User, Loader2, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 
 export default function LoginPage() {
   const [state, action, pending] = useActionState(login, undefined);
-  const { theme } = useTheme();
   const [showPassword, setShowPassword] = useState(false);
-
-  const isDark = theme === "dark";
-  const logoSrc = isDark ? "/logo-cyberar.png" : "/logo-cyberar-light.png";
-  const logoStyle = isDark
-    ? { mixBlendMode: "screen" as const, filter: "brightness(4) saturate(0.4)" }
-    : {};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 px-4">
@@ -38,16 +30,7 @@ export default function LoginPage() {
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl shadow-slate-200/50 dark:shadow-black/30 p-8">
           {/* Logo */}
           <div className="flex flex-col items-center mb-8">
-            <div className={isDark ? "bg-slate-800 rounded-xl px-4 py-3 mb-3" : "mb-3"}>
-              <Image
-                src={logoSrc}
-                alt="CYBER.AR"
-                width={160}
-                height={54}
-                style={logoStyle}
-                priority
-              />
-            </div>
+            <CyberARLogo width={160} height={54} className="mb-3 rounded-lg" priority />
             <p className="text-slate-400 dark:text-white/30 text-xs tracking-widest uppercase font-mono">
               Control Center
             </p>

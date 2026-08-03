@@ -294,6 +294,8 @@ function emptySponsor(defaultMoneda: Moneda): Omit<Sponsor, "id"> {
     ultimoContacto: "",
     proximaAccion: "",
     notas: "",
+    proposedEmail: "",
+    emailSourceUrl: "",
   };
 }
 

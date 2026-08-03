@@ -4,13 +4,13 @@ import { useLayout, LayoutProvider } from "@/components/providers/LayoutContext"
 import { DataProvider } from "@/components/providers/DataProvider";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { SaveErrorBanner } from "@/components/layout/SaveErrorBanner";
+import { cn } from "@/lib/utils";
 
 function MainLayoutInner({ children }: { children: React.ReactNode }) {
-  const { sidebarOpen, setSidebarOpen } = useLayout();
+  const { sidebarOpen, setSidebarOpen, sidebarCollapsed } = useLayout();
 
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950">
-      {/* Mobile overlay */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-30 bg-black/50 md:hidden"
@@ -20,7 +20,12 @@ function MainLayoutInner({ children }: { children: React.ReactNode }) {
 
       <Sidebar />
 
-      <main className="flex-1 md:ml-64 min-h-screen flex flex-col">
+      <main
+        className={cn(
+          "flex-1 min-h-screen flex flex-col transition-[margin] duration-200 ease-in-out",
+          !sidebarCollapsed && "md:ml-64"
+        )}
+      >
         <DataProvider>
           <SaveErrorBanner />
           {children}

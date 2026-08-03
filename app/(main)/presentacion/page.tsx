@@ -1,19 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { X, CheckCircle2, TrendingUp, Users, Building2, Target } from "lucide-react";
+import { CyberARLogo } from "@/components/brand/CyberARLogo";
 import { useStore } from "@/store/useStore";
 import { calcKPIs, calcSponsorsConfirmados, calcTotalInscripcionesProyectado, calcAsistentesPresenciales, calcAsistentesVirtuales, getActiveMonedas } from "@/lib/calculations";
 import { formatCurrency, formatNumber, formatPercent } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
-import { useTheme } from "@/components/providers/ThemeProvider";
 import { RevenueChart } from "@/components/dashboard/RevenueChart";
 import { SponsorStatusChart, IngresosFuenteChart } from "@/components/dashboard/DistributionCharts";
 
 export default function PresentacionPage() {
   const { sponsors, inscripciones, gastos, config, financeSummary } = useStore();
-  const { theme } = useTheme();
   const activeMonedas = getActiveMonedas(sponsors, inscripciones, gastos, [], financeSummary);
   const primaryMoneda = activeMonedas[0] ?? config.moneda;
   const kpis = calcKPIs(
@@ -29,12 +27,6 @@ export default function PresentacionPage() {
   const presConf = calcAsistentesPresenciales(inscripciones, "confirmada", undefined, financeSummary);
   const virtConf = calcAsistentesVirtuales(inscripciones, "confirmada", undefined, financeSummary);
   const isPositive = kpis.resultadoNeto >= 0;
-
-  const isDark = theme === "dark";
-  const logoSrc = isDark ? "/logo-cyberar.png" : "/logo-cyberar-light.png";
-  const logoStyle = isDark
-    ? { mixBlendMode: "screen" as const, filter: "brightness(4) saturate(0.4)" }
-    : {};
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col">
@@ -55,8 +47,12 @@ export default function PresentacionPage() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4 md:gap-5">
             <div className="w-24 md:w-36 flex-shrink-0">
-              <Image src={logoSrc} alt="CYBER.AR" width={220} height={74}
-                className="h-10 md:h-14 w-auto" style={logoStyle} priority />
+              <CyberARLogo
+                width={220}
+                height={74}
+                className="h-10 md:h-14 w-auto rounded-lg"
+                priority
+              />
             </div>
             <div className="border-l border-slate-300 dark:border-slate-700 pl-4 md:pl-5">
               <h1 className="text-xl md:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Reporte Ejecutivo</h1>

@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
@@ -19,7 +18,7 @@ import {
 import { logout } from "@/app/actions/auth";
 import { cn } from "@/lib/utils";
 import { useLayout } from "@/components/providers/LayoutContext";
-import { useTheme } from "@/components/providers/ThemeProvider";
+import { CyberARLogo } from "@/components/brand/CyberARLogo";
 
 const navItems = [
   { label: "Dashboard",     href: "/dashboard",     icon: LayoutDashboard },
@@ -34,22 +33,15 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { sidebarOpen, setSidebarOpen } = useLayout();
-  const { theme } = useTheme();
-
-  const isDark = theme === "dark";
-  const logoSrc = isDark ? "/logo-cyberar.png" : "/logo-cyberar-light.png";
-  const logoStyle = isDark
-    ? { mixBlendMode: "screen" as const, filter: "brightness(4) saturate(0.4)" }
-    : {};
+  const { sidebarOpen, setSidebarOpen, sidebarCollapsed, toggleSidebarCollapsed } = useLayout();
 
   return (
     <aside
       className={cn(
         "fixed left-0 top-0 h-screen w-64 flex flex-col z-40",
         "transform transition-transform duration-200 ease-in-out",
-        "md:translate-x-0",
         sidebarOpen ? "translate-x-0" : "-translate-x-full",
+        sidebarCollapsed ? "md:-translate-x-full" : "md:translate-x-0",
         // Theme-aware sidebar background
         "bg-white dark:bg-slate-950",
         "border-r border-slate-200 dark:border-slate-800"
@@ -65,17 +57,7 @@ export function Sidebar() {
           <X className="w-4 h-4" />
         </button>
 
-        <div className={isDark ? "bg-slate-900 rounded-xl px-3 py-2" : ""}>
-          <Image
-            src={logoSrc}
-            alt="CYBER.AR"
-            width={180}
-            height={60}
-            className="w-full h-auto pr-6 md:pr-0"
-            style={logoStyle}
-            priority
-          />
-        </div>
+        <CyberARLogo className="w-full h-auto pr-6 md:pr-0 rounded-lg" priority />
 
         <p className="text-slate-400 dark:text-white/30 text-xs text-center mt-2 tracking-widest uppercase font-mono">
           Control Center

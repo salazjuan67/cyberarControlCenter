@@ -1,0 +1,2 @@
+ALTER TABLE sponsors ADD COLUMN IF NOT EXISTS proposed_email TEXT DEFAULT '';
+ALTER TABLE sponsors ADD COLUMN IF NOT EXISTS email_source_url TEXT DEFAULT '';

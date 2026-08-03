@@ -46,6 +46,8 @@ export interface Sponsor {
   ultimoContacto: string;
   proximaAccion: string;
   notas: string;
+  proposedEmail: string;
+  emailSourceUrl: string;
 }
 
 // ─── Inscripciones ───────────────────────────────────────────────────────────

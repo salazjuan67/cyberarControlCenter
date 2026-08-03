@@ -1,6 +1,6 @@
 "use client";
 
-import { Presentation, Sun, Moon, Menu } from "lucide-react";
+import { Presentation, Sun, Moon, Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,16 +17,29 @@ interface HeaderProps {
 export function Header({ title, subtitle, badge, actions }: HeaderProps) {
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
-  const { setSidebarOpen } = useLayout();
+  const { setSidebarOpen, sidebarCollapsed, toggleSidebarCollapsed } = useLayout();
 
   return (
     <header className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-sm flex items-center px-4 md:px-6 gap-3 sticky top-0 z-20">
-      {/* Mobile hamburger */}
       <button
         onClick={() => setSidebarOpen(true)}
         className="md:hidden p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+        aria-label="Abrir menú"
       >
         <Menu className="w-5 h-5" />
+      </button>
+
+      <button
+        onClick={toggleSidebarCollapsed}
+        className="hidden md:flex p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+        title={sidebarCollapsed ? "Mostrar menú lateral" : "Ocultar menú lateral"}
+        aria-label={sidebarCollapsed ? "Mostrar menú lateral" : "Ocultar menú lateral"}
+      >
+        {sidebarCollapsed ? (
+          <PanelLeftOpen className="w-5 h-5" />
+        ) : (
+          <PanelLeftClose className="w-5 h-5" />
+        )}
       </button>
 
       <div className="flex-1 min-w-0">

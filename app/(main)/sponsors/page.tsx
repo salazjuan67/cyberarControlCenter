@@ -20,6 +20,7 @@ import { SponsorDialog } from "@/components/sponsors/SponsorDialog";
 import { SponsorPipeline } from "@/components/sponsors/SponsorPipeline";
 import { SponsorImportDialog } from "@/components/sponsors/SponsorImportDialog";
 import { SponsorFiltersBar } from "@/components/sponsors/SponsorFiltersBar";
+import { SponsorEnrichmentPanel } from "@/components/sponsors/SponsorEnrichmentPanel";
 import type { Sponsor, SponsorCategoria, SponsorEstado, Moneda } from "@/types";
 
 const EMPTY_BASE: Omit<Sponsor, "id" | "moneda"> = {
@@ -27,6 +28,7 @@ const EMPTY_BASE: Omit<Sponsor, "id" | "moneda"> = {
   montoEstimado: 0, montoConfirmado: 0, probabilidad: 50, responsable: "", segmento: "",
   prioridad: "", region: "",
   ultimoContacto: new Date().toISOString().split("T")[0], proximaAccion: "", notas: "",
+  proposedEmail: "", emailSourceUrl: "",
 };
 
 export default function SponsorsPage() {
@@ -35,7 +37,7 @@ export default function SponsorsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [editingSponsor, setEditingSponsor] = useState<Sponsor | null>(null);
-  const [view, setView] = useState<"tabla" | "pipeline">("tabla");
+  const [view, setView] = useState<"tabla" | "pipeline" | "emails">("tabla");
 
   const activeMonedas = getActiveMonedas(sponsors, [], []);
   const confirmadoByMoneda = sumByMoneda(
@@ -79,10 +81,10 @@ export default function SponsorsPage() {
       <Header title="Sponsors & Auspiciantes" subtitle={`${sponsors.length} sponsors — ${confirmados} confirmados`} badge="CRM"
         actions={
           <div className="hidden sm:flex rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
-            {(["tabla", "pipeline"] as const).map((v) => (
+            {(["tabla", "pipeline", "emails"] as const).map((v) => (
               <button key={v} onClick={() => setView(v)}
                 className={`px-3 py-1.5 text-xs capitalize transition-colors ${view === v ? "bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white" : "bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"}`}>
-                {v === "tabla" ? "Tabla" : "Pipeline"}
+                {v === "tabla" ? "Tabla" : v === "pipeline" ? "Pipeline" : "Emails"}
               </button>
             ))}
           </div>
@@ -151,7 +153,9 @@ export default function SponsorsPage() {
 
         {view === "tabla"
           ? <SponsorTable sponsors={filtered} onEdit={(s) => { setEditingSponsor(s); setDialogOpen(true); }} onDelete={deleteSponsor} />
-          : <SponsorPipeline sponsors={filtered} onEdit={(s) => { setEditingSponsor(s); setDialogOpen(true); }} />
+          : view === "pipeline"
+            ? <SponsorPipeline sponsors={filtered} onEdit={(s) => { setEditingSponsor(s); setDialogOpen(true); }} />
+            : <SponsorEnrichmentPanel />
         }
       </div>
       <SponsorDialog open={dialogOpen} onOpenChange={setDialogOpen} initial={editingSponsor || undefined} defaultValues={defaultSponsorValues} onSave={handleSave} />

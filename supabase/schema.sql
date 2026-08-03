@@ -32,6 +32,8 @@ CREATE TABLE IF NOT EXISTS sponsors (
   ultimo_contacto DATE,
   proxima_accion TEXT DEFAULT '',
   notas TEXT DEFAULT '',
+  proposed_email TEXT DEFAULT '',
+  email_source_url TEXT DEFAULT '',
   moneda TEXT NOT NULL DEFAULT 'USD',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );

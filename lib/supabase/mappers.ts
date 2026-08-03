@@ -63,6 +63,8 @@ export function mapSponsor(row: Record<string, unknown>): Sponsor {
     ultimoContacto: (row.ultimo_contacto as string) ?? "",
     proximaAccion: (row.proxima_accion as string) ?? "",
     notas: (row.notas as string) ?? "",
+    proposedEmail: (row.proposed_email as string) ?? "",
+    emailSourceUrl: (row.email_source_url as string) ?? "",
   };
 }
 
@@ -86,6 +88,8 @@ export function sponsorToRow(s: Sponsor) {
     ultimo_contacto: s.ultimoContacto || null,
     proxima_accion: s.proximaAccion,
     notas: s.notas,
+    proposed_email: s.proposedEmail,
+    email_source_url: s.emailSourceUrl,
   };
 }
 
