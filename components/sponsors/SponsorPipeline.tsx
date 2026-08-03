@@ -61,6 +61,7 @@ export function SponsorPipeline({ sponsors, onEdit }: { sponsors: Sponsor[]; onE
                     </Button>
                   </div>
                   <Badge variant="outline" className={cn("text-xs mt-1.5 px-1.5 py-0", CAT_COLORS[s.categoria])}>{s.categoria}</Badge>
+                  {s.segmento && <p className="text-slate-400 dark:text-slate-500 text-[10px] mt-1 truncate">{s.segmento}</p>}
                   {s.montoEstimado > 0 && <p className="text-slate-500 dark:text-slate-400 text-xs mt-1.5">{formatCurrency(s.montoEstimado, s.moneda)}</p>}
                   {s.proximaAccion && <p className="text-slate-400 dark:text-slate-600 text-xs mt-1 leading-tight truncate">{s.proximaAccion}</p>}
                 </div>

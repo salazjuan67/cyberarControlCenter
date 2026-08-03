@@ -20,6 +20,9 @@ import {
   removeGasto,
   saveEscenario,
   clearAllDataInDb,
+  importSponsorsBulk,
+  fetchAllData,
+  type ImportSponsorsResult,
 } from "@/app/actions/data";
 import { syncFinanceSummary } from "@/app/actions/finance-summary";
 import type { FinanceSummary } from "@/types/finance-summary";
@@ -56,6 +59,10 @@ interface AppState {
   addSponsor: (sponsor: Sponsor) => Promise<void>;
   updateSponsor: (id: string, updates: Partial<Sponsor>) => Promise<void>;
   deleteSponsor: (id: string) => Promise<void>;
+  importSponsors: (
+    sponsors: Sponsor[],
+    options?: { replaceDuplicates?: boolean }
+  ) => Promise<ImportSponsorsResult>;
 
   addInscripcion: (inscripcion: Inscripcion) => Promise<void>;
   updateInscripcion: (id: string, updates: Partial<Inscripcion>) => Promise<void>;
@@ -161,6 +168,24 @@ export const useStore = create<AppState>()((set, get) => ({
       set({
         sponsors: previous,
         saveError: err instanceof Error ? err.message : "Error al eliminar sponsor",
+      });
+      throw err;
+    }
+  },
+
+  importSponsors: async (sponsors, options) => {
+    const previous = get().sponsors;
+    set({ saveError: null });
+
+    try {
+      const result = await importSponsorsBulk(sponsors, options);
+      const refreshed = await fetchAllData();
+      set({ sponsors: refreshed.sponsors });
+      return result;
+    } catch (err) {
+      set({
+        sponsors: previous,
+        saveError: err instanceof Error ? err.message : "Error al importar sponsors",
       });
       throw err;
     }

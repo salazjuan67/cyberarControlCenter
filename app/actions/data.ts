@@ -14,6 +14,7 @@ import {
   gastoToRow,
   escenarioToRow,
 } from "@/lib/supabase/mappers";
+import { sponsorKey } from "@/lib/sponsors/import";
 import {
   defaultConfig,
   buildEmptyEscenarios,
@@ -141,6 +142,91 @@ export async function removeSponsor(id: string) {
   const supabase = createSupabaseServer();
   const { error } = await supabase.from("sponsors").delete().eq("id", id);
   if (error) throw new Error(error.message);
+}
+
+export interface ImportSponsorsOptions {
+  replaceDuplicates?: boolean;
+}
+
+export interface ImportSponsorsResult {
+  imported: number;
+  skipped: number;
+  updated: number;
+  errors: string[];
+}
+
+export async function importSponsorsBulk(
+  sponsors: Sponsor[],
+  options: ImportSponsorsOptions = {}
+): Promise<ImportSponsorsResult> {
+  await requireAuth();
+  const supabase = createSupabaseServer();
+  const replaceDuplicates = options.replaceDuplicates ?? false;
+
+  const { data: existingRows, error: fetchError } = await supabase
+    .from("sponsors")
+    .select("id, empresa, email");
+
+  if (fetchError) throw new Error(fetchError.message);
+
+  const existingByKey = new Map<string, string>();
+  for (const row of existingRows ?? []) {
+    const key = sponsorKey({
+      empresa: String(row.empresa),
+      email: String(row.email ?? ""),
+    });
+    existingByKey.set(key, row.id as string);
+  }
+
+  const toUpsert: Sponsor[] = [];
+  let skipped = 0;
+  let updated = 0;
+  const errors: string[] = [];
+
+  for (const sponsor of sponsors) {
+    const key = sponsorKey(sponsor);
+    const existingId = existingByKey.get(key);
+
+    if (existingId) {
+      if (!replaceDuplicates) {
+        skipped += 1;
+        continue;
+      }
+      toUpsert.push({ ...sponsor, id: existingId });
+      updated += 1;
+      continue;
+    }
+
+    toUpsert.push(sponsor);
+  }
+
+  if (toUpsert.length === 0) {
+    return { imported: 0, skipped, updated, errors };
+  }
+
+  const chunkSize = 100;
+  let imported = 0;
+
+  for (let i = 0; i < toUpsert.length; i += chunkSize) {
+    const chunk = toUpsert.slice(i, i + chunkSize);
+    const { error } = await supabase
+      .from("sponsors")
+      .upsert(chunk.map(sponsorToRow), { onConflict: "id" });
+
+    if (error) {
+      errors.push(error.message);
+      continue;
+    }
+
+    imported += chunk.length;
+  }
+
+  return {
+    imported: replaceDuplicates ? imported - updated : imported,
+    skipped,
+    updated,
+    errors,
+  };
 }
 
 export async function saveInscripcion(inscripcion: Inscripcion) {

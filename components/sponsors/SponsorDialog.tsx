@@ -67,6 +67,18 @@ export function SponsorDialog({ open, onOpenChange, initial, defaultValues, onSa
             <Input value={form.responsable} onChange={(e) => set("responsable", e.target.value)} className={inputCls} />
           </div>
           <div>
+            <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">Segmento / Rubro</label>
+            <Input value={form.segmento} onChange={(e) => set("segmento", e.target.value)} placeholder="Ej: Ciberseguridad, Fintech" className={inputCls} />
+          </div>
+          <div>
+            <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">Prioridad</label>
+            <Input value={form.prioridad} onChange={(e) => set("prioridad", e.target.value)} placeholder="Ej: A - Alta" className={inputCls} />
+          </div>
+          <div>
+            <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">Región</label>
+            <Input value={form.region} onChange={(e) => set("region", e.target.value)} placeholder="Ej: Argentina" className={inputCls} />
+          </div>
+          <div>
             <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">Categoría</label>
             <Select value={form.categoria} onValueChange={(v) => set("categoria", v as SponsorCategoria)}>
               <SelectTrigger className={inputCls}><SelectValue /></SelectTrigger>

@@ -40,6 +40,9 @@ export interface Sponsor {
   montoConfirmado: number;
   probabilidad: number;
   responsable: string;
+  segmento: string;
+  prioridad: string;
+  region: string;
   ultimoContacto: string;
   proximaAccion: string;
   notas: string;

@@ -10,6 +10,7 @@ import {
   Wallet,
   BarChart3,
   Presentation,
+  Mail,
   Settings,
   ChevronRight,
   X,
@@ -27,6 +28,7 @@ const navItems = [
   { label: "Presupuesto",   href: "/presupuesto",    icon: Wallet },
   { label: "Escenarios",    href: "/escenarios",     icon: BarChart3 },
   { label: "Presentación",  href: "/presentacion",   icon: Presentation },
+  { label: "Newsletter",    href: "/newsletter",     icon: Mail },
   { label: "Configuración", href: "/configuracion",  icon: Settings },
 ];
 
