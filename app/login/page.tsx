@@ -30,7 +30,7 @@ export default function LoginPage() {
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl shadow-slate-200/50 dark:shadow-black/30 p-8">
           {/* Logo */}
           <div className="flex flex-col items-center mb-8">
-            <CyberARLogo width={160} height={54} className="mb-3 rounded-lg" priority />
+            <CyberARLogo width={160} height={54} className="mb-3" priority />
             <p className="text-slate-400 dark:text-white/30 text-xs tracking-widest uppercase font-mono">
               Control Center
             </p>

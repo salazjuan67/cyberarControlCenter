@@ -50,7 +50,7 @@ export default function PresentacionPage() {
               <CyberARLogo
                 width={220}
                 height={74}
-                className="h-10 md:h-14 w-auto rounded-lg"
+                className="h-10 md:h-14 w-auto"
                 priority
               />
             </div>

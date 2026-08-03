@@ -7,6 +7,7 @@ import {
   Loader2,
   Mail,
   ScanSearch,
+  Sparkles,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,19 +17,25 @@ import { fetchAllData } from "@/app/actions/data";
 import {
   approveProposedEmail,
   getEnrichmentStats,
+  getHunterStatus,
   rejectProposedEmail,
   scanSponsorEmails,
+  scanSponsorEmailsWithHunter,
   type EnrichmentStats,
+  type HunterStatus,
   type ScanResult,
 } from "@/app/actions/sponsor-enrichment";
 import { extractWebsiteFromNotas } from "@/lib/sponsors/website-parser";
+import { parseHunterSourceUrl } from "@/lib/sponsors/hunter";
 import type { Sponsor } from "@/types";
 
 export function SponsorEnrichmentPanel() {
   const { sponsors, hydrate } = useStore();
   const [stats, setStats] = useState<EnrichmentStats | null>(null);
+  const [hunterStatus, setHunterStatus] = useState<HunterStatus | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
   const [scanning, setScanning] = useState(false);
+  const [scanProvider, setScanProvider] = useState<"scraper" | "hunter" | null>(null);
   const [lastScan, setLastScan] = useState<ScanResult | null>(null);
   const [actionId, setActionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -39,8 +46,13 @@ export function SponsorEnrichmentPanel() {
   );
 
   const refreshAll = useCallback(async () => {
-    const [nextStats, data] = await Promise.all([getEnrichmentStats(), fetchAllData()]);
+    const [nextStats, hunter, data] = await Promise.all([
+      getEnrichmentStats(),
+      getHunterStatus(),
+      fetchAllData(),
+    ]);
     setStats(nextStats);
+    setHunterStatus(hunter);
     hydrate({
       config: data.config,
       sponsors: data.sponsors,
@@ -52,23 +64,41 @@ export function SponsorEnrichmentPanel() {
 
   useEffect(() => {
     setLoadingStats(true);
-    getEnrichmentStats()
-      .then(setStats)
+    Promise.all([getEnrichmentStats(), getHunterStatus()])
+      .then(([nextStats, hunter]) => {
+        setStats(nextStats);
+        setHunterStatus(hunter);
+      })
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoadingStats(false));
   }, [sponsors.length]);
 
-  async function handleScan() {
+  useEffect(() => {
+    if (!scanning) return;
+
+    const interval = setInterval(() => {
+      refreshAll().catch(() => {});
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [scanning, refreshAll]);
+
+  async function handleScan(provider: "scraper" | "hunter") {
     setScanning(true);
+    setScanProvider(provider);
     setError(null);
     try {
-      const result = await scanSponsorEmails(25);
+      const result =
+        provider === "hunter"
+          ? await scanSponsorEmailsWithHunter(25)
+          : await scanSponsorEmails(25);
       setLastScan(result);
       await refreshAll();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al escanear");
     } finally {
       setScanning(false);
+      setScanProvider(null);
     }
   }
 
@@ -108,23 +138,66 @@ export function SponsorEnrichmentPanel() {
               Enriquecimiento de emails
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-xl">
-              Escanea el sitio oficial de cada sponsor (desde el campo notas) y propone un email
-              para revisión manual. No se guarda en el CRM hasta que lo apruebes.
+              Buscá emails con Hunter.io (recomendado) o escaneá el sitio oficial. Las propuestas
+              requieren revisión manual antes de guardarse en el CRM.
             </p>
-          </div>
-          <Button
-            onClick={handleScan}
-            disabled={scanning || (stats?.scannable ?? 0) === 0}
-            className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold shrink-0"
-          >
-            {scanning ? (
-              <Loader2 className="w-4 h-4 animate-spin mr-2" />
-            ) : (
-              <ScanSearch className="w-4 h-4 mr-2" />
+            {hunterStatus?.configured && (
+              <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-2 font-mono">
+                Hunter: {hunterStatus.planName ?? "activo"}
+                {typeof hunterStatus.searchesAvailable === "number"
+                  ? ` · ${hunterStatus.searchesAvailable} búsquedas disponibles`
+                  : ""}
+              </p>
             )}
-            Escanear lote (25)
-          </Button>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+            <Button
+              onClick={() => handleScan("hunter")}
+              disabled={scanning || !hunterStatus?.configured || (stats?.scannable ?? 0) === 0}
+              className="bg-violet-600 hover:bg-violet-500 text-white font-semibold"
+            >
+              {scanning && scanProvider === "hunter" ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  Hunter…
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Hunter (25)
+                </>
+              )}
+            </Button>
+            <Button
+              onClick={() => handleScan("scraper")}
+              disabled={scanning || (stats?.scannable ?? 0) === 0}
+              variant="outline"
+              className="border-slate-300 dark:border-slate-700"
+            >
+              {scanning && scanProvider === "scraper" ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  Escaneando…
+                </>
+              ) : (
+                <>
+                  <ScanSearch className="w-4 h-4 mr-2" />
+                  Sitio web (25)
+                </>
+              )}
+            </Button>
+          </div>
         </div>
+
+        {!hunterStatus?.configured && (
+          <p className="text-xs text-amber-600 dark:text-amber-400 mt-3">
+            Hunter.io no configurado. Agregá HUNTER_API_KEY en las variables de entorno.
+          </p>
+        )}
+
+        {hunterStatus?.error && (
+          <p className="text-xs text-red-500 mt-3">{hunterStatus.error}</p>
+        )}
 
         {loadingStats ? (
           <div className="flex items-center gap-2 text-sm text-slate-500 mt-4">
@@ -141,10 +214,18 @@ export function SponsorEnrichmentPanel() {
           </div>
         ) : null}
 
-        {lastScan && (
+        {scanning && stats && (
+          <p className="text-xs text-cyan-600 dark:text-cyan-400 mt-3">
+            {scanProvider === "hunter" ? "Hunter" : "Escaneo web"} en curso — {stats.pendingReview}{" "}
+            propuesta{stats.pendingReview === 1 ? "" : "s"} detectada
+            {stats.pendingReview === 1 ? "" : "s"} hasta ahora. La lista se actualiza automáticamente.
+          </p>
+        )}
+
+        {lastScan && !scanning && (
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-3 font-mono">
-            Último escaneo: {lastScan.scanned} procesados · {lastScan.found} propuestas ·{" "}
-            {lastScan.errors.length} sin resultado
+            Último {lastScan.provider === "hunter" ? "Hunter" : "escaneo web"}: {lastScan.scanned}{" "}
+            procesados · {lastScan.found} propuestas · {lastScan.errors.length} sin resultado
           </p>
         )}
 
@@ -219,6 +300,7 @@ function PendingRow({
   onReject: () => void;
 }) {
   const website = extractWebsiteFromNotas(sponsor.notas);
+  const hunter = parseHunterSourceUrl(sponsor.emailSourceUrl);
 
   return (
     <div className="px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3">
@@ -230,6 +312,16 @@ function PendingRow({
           {sponsor.proposedEmail}
         </p>
         <div className="flex flex-wrap items-center gap-2 mt-1">
+          {hunter.isHunter && (
+            <Badge className="text-[10px] bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300 border-violet-200 dark:border-violet-500/30">
+              Hunter{hunter.confidence ? ` ${hunter.confidence}%` : ""}
+            </Badge>
+          )}
+          {!hunter.isHunter && sponsor.emailSourceUrl && (
+            <Badge variant="outline" className="text-[10px]">
+              Sitio web
+            </Badge>
+          )}
           {sponsor.region && (
             <Badge variant="outline" className="text-[10px]">
               {sponsor.region}
@@ -245,7 +337,16 @@ function PendingRow({
               Sitio <ExternalLink className="w-3 h-3" />
             </a>
           )}
-          {sponsor.emailSourceUrl && (
+          {hunter.webUrl ? (
+            <a
+              href={hunter.webUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[11px] text-slate-500 hover:text-violet-500 inline-flex items-center gap-1"
+            >
+              Hunter <ExternalLink className="w-3 h-3" />
+            </a>
+          ) : sponsor.emailSourceUrl && !hunter.isHunter ? (
             <a
               href={sponsor.emailSourceUrl}
               target="_blank"
@@ -254,7 +355,7 @@ function PendingRow({
             >
               Fuente <ExternalLink className="w-3 h-3" />
             </a>
-          )}
+          ) : null}
         </div>
       </div>
       <div className="flex items-center gap-2 shrink-0">

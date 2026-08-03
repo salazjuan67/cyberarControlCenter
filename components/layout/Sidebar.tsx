@@ -57,7 +57,7 @@ export function Sidebar() {
           <X className="w-4 h-4" />
         </button>
 
-        <CyberARLogo className="w-full h-auto pr-6 md:pr-0 rounded-lg" priority />
+        <CyberARLogo className="w-full h-auto pr-6 md:pr-0" priority />
 
         <p className="text-slate-400 dark:text-white/30 text-xs text-center mt-2 tracking-widest uppercase font-mono">
           Control Center
