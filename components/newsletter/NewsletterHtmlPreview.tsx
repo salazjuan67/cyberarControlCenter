@@ -32,7 +32,7 @@ export function NewsletterHtmlPreview({ html, subject }: NewsletterHtmlPreviewPr
   }
 
   return (
-    <div className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-900 flex flex-col min-h-[420px]">
+    <div className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-900 flex flex-col max-h-[min(70vh,720px)]">
       <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
@@ -70,11 +70,11 @@ export function NewsletterHtmlPreview({ html, subject }: NewsletterHtmlPreviewPr
         </span>
       </div>
 
-      <div className="flex-1 bg-slate-100 dark:bg-slate-950 p-3">
+      <div className="flex-1 min-h-0 bg-slate-100 dark:bg-slate-950 p-3 overflow-hidden">
         <iframe
           title="Newsletter HTML preview"
           srcDoc={normalizedHtml}
-          className="w-full h-full min-h-[520px] rounded-lg border border-slate-200 dark:border-slate-700 bg-white"
+          className="w-full h-full min-h-[320px] rounded-lg border border-slate-200 dark:border-slate-700 bg-white"
           sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
         />
       </div>

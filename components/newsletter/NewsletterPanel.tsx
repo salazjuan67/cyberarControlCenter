@@ -218,7 +218,7 @@ export function NewsletterPanel() {
         </div>
       )}
 
-      <div className="grid gap-4 xl:grid-cols-2">
+      <div className="grid gap-4 xl:grid-cols-2 xl:items-start">
         <div className="space-y-4">
           <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5 space-y-4">
             <div className="flex items-center gap-2">
@@ -284,16 +284,10 @@ export function NewsletterPanel() {
             </div>
           </div>
 
-          <div className="xl:hidden">
-            <NewsletterHtmlPreview html={html} subject={subject} />
-          </div>
+          <NewsletterHtmlPreview html={html} subject={subject} />
         </div>
 
         <div className="space-y-4">
-          <div className="hidden xl:block sticky top-4">
-            <NewsletterHtmlPreview html={html} subject={subject} />
-          </div>
-
           <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5 space-y-4">
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
