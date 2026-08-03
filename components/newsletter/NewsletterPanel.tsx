@@ -28,6 +28,7 @@ import {
   sendNewsletter,
   sendTestNewsletter,
 } from "@/app/actions/newsletter";
+import { NewsletterTrackingPanel } from "@/components/newsletter/NewsletterTrackingPanel";
 import type { NewsletterAudience } from "@/types/newsletter";
 
 const inputCls =
@@ -164,7 +165,10 @@ export function NewsletterPanel() {
         result.failed > 0
           ? ` (${result.failed} fallaron)`
           : "";
-      setMessage(`Newsletter enviada: ${result.sent} correo(s)${partial}.`);
+      setMessage(
+        `Newsletter enviada: ${result.sent} correo(s)${partial}.` +
+          (result.campaignId ? " Seguí las métricas abajo." : "")
+      );
       if (result.errors.length > 0) {
         setError(result.errors.slice(0, 3).join(" · "));
       }
@@ -398,6 +402,8 @@ export function NewsletterPanel() {
           />
         </div>
       )}
+
+      <NewsletterTrackingPanel />
     </div>
   );
 }

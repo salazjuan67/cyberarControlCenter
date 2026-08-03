@@ -36,6 +36,7 @@ export function resolveSponsorRecipients(
       email,
       name: sponsor.contacto?.trim() || sponsor.empresa?.trim() || "Contacto",
       empresa: sponsor.empresa?.trim() || "—",
+      sponsorId: sponsor.id,
     });
   }
 

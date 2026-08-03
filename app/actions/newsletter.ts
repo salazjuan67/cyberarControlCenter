@@ -14,6 +14,11 @@ import {
 } from "@/lib/resend/client";
 import { resolveSponsorRecipients } from "@/lib/newsletter/recipients";
 import {
+  buildCampaignStats,
+  mapCampaign,
+  mapDelivery,
+} from "@/lib/newsletter/campaigns";
+import {
   buildNewsletterHtml,
   buildNewsletterSubject,
   getPrimaryMoneda,
@@ -21,6 +26,8 @@ import {
 } from "@/lib/newsletter/templates";
 import type {
   NewsletterAudience,
+  NewsletterCampaign,
+  NewsletterCampaignStats,
   NewsletterPreview,
   NewsletterStatus,
   NewsletterSummaryDraft,
@@ -102,6 +109,48 @@ export async function buildNewsletterSummaryDraft(
   };
 }
 
+export async function getNewsletterCampaigns(): Promise<NewsletterCampaign[]> {
+  await requireAuth();
+  const supabase = createSupabaseServer();
+
+  const { data, error } = await supabase
+    .from("newsletter_campaigns")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(10);
+
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(mapCampaign);
+}
+
+export async function getNewsletterCampaignStats(
+  campaignId: string
+): Promise<NewsletterCampaignStats | null> {
+  await requireAuth();
+  const supabase = createSupabaseServer();
+
+  const { data: campaignRow, error: campaignError } = await supabase
+    .from("newsletter_campaigns")
+    .select("*")
+    .eq("id", campaignId)
+    .maybeSingle();
+
+  if (campaignError) throw new Error(campaignError.message);
+  if (!campaignRow) return null;
+
+  const { data: deliveries, error: deliveriesError } = await supabase
+    .from("newsletter_deliveries")
+    .select("*")
+    .eq("campaign_id", campaignId);
+
+  if (deliveriesError) throw new Error(deliveriesError.message);
+
+  return buildCampaignStats(
+    mapCampaign(campaignRow),
+    (deliveries ?? []).map(mapDelivery)
+  );
+}
+
 export async function sendTestNewsletter(
   input: SendTestEmailInput
 ): Promise<SendTestEmailResult> {
@@ -165,12 +214,27 @@ export async function sendNewsletter(
     };
   }
 
+  const campaignId = `nc${Date.now()}`;
+  const supabase = createSupabaseServer();
+
   try {
     const { from } = assertResendReady();
     const resend = getResendClient();
     const errors: string[] = [];
     let sent = 0;
     let failed = 0;
+
+    const { error: campaignError } = await supabase.from("newsletter_campaigns").insert({
+      id: campaignId,
+      subject,
+      audience: input.audience,
+      from_email: from,
+      total_recipients: recipients.length,
+      sent_count: 0,
+      failed_count: 0,
+    });
+
+    if (campaignError) throw new Error(campaignError.message);
 
     for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
       const chunk = recipients.slice(i, i + BATCH_SIZE);
@@ -179,24 +243,74 @@ export async function sendNewsletter(
         to: [recipient.email],
         subject,
         html: finalHtml,
+        tags: [{ name: "campaign_id", value: campaignId }],
       }));
 
-      const { error } = await resend.batch.send(payload);
+      const { data, error } = await resend.batch.send(payload);
 
       if (error) {
         failed += chunk.length;
         errors.push(error.message);
+
+        const failedRows = chunk.map((recipient, index) => ({
+          id: `${campaignId}-d${i + index}`,
+          campaign_id: campaignId,
+          resend_email_id: null,
+          sponsor_id: recipient.sponsorId,
+          recipient_email: recipient.email,
+          recipient_name: recipient.name,
+          empresa: recipient.empresa,
+          status: "failed",
+          failed_at: new Date().toISOString(),
+          last_event_at: new Date().toISOString(),
+        }));
+
+        await supabase.from("newsletter_deliveries").insert(failedRows);
         continue;
       }
 
-      sent += chunk.length;
+      const emailIds = data?.data ?? [];
+      const deliveryRows = chunk.map((recipient, index) => {
+        const resendEmailId = emailIds[index]?.id ?? null;
+        const accepted = Boolean(resendEmailId);
+        if (accepted) sent += 1;
+        else failed += 1;
+
+        return {
+          id: `${campaignId}-d${i + index}`,
+          campaign_id: campaignId,
+          resend_email_id: resendEmailId,
+          sponsor_id: recipient.sponsorId,
+          recipient_email: recipient.email,
+          recipient_name: recipient.name,
+          empresa: recipient.empresa,
+          status: accepted ? "sent" : "failed",
+          sent_at: accepted ? new Date().toISOString() : null,
+          failed_at: accepted ? null : new Date().toISOString(),
+          last_event_at: new Date().toISOString(),
+        };
+      });
+
+      const { error: insertError } = await supabase
+        .from("newsletter_deliveries")
+        .insert(deliveryRows);
+
+      if (insertError) {
+        errors.push(insertError.message);
+      }
     }
+
+    await supabase
+      .from("newsletter_campaigns")
+      .update({ sent_count: sent, failed_count: failed })
+      .eq("id", campaignId);
 
     return {
       ok: sent > 0 && failed === 0,
       sent,
       failed,
       errors,
+      campaignId,
     };
   } catch (err) {
     return {
@@ -204,6 +318,7 @@ export async function sendNewsletter(
       sent: 0,
       failed: recipients.length,
       errors: [err instanceof Error ? err.message : "Error al enviar newsletter"],
+      campaignId,
     };
   }
 }
