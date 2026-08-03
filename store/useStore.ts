@@ -17,6 +17,7 @@ import {
   removeSponsor,
   saveAsistentePotencial,
   removeAsistentePotencial,
+  importAsistentesBulk,
   removeSponsorsWithoutEmail,
   saveInscripcion,
   removeInscripcion,
@@ -27,6 +28,7 @@ import {
   importSponsorsBulk,
   fetchAllData,
   type ImportSponsorsResult,
+  type ImportAsistentesResult,
 } from "@/app/actions/data";
 import { syncFinanceSummary } from "@/app/actions/finance-summary";
 import type { FinanceSummary } from "@/types/finance-summary";
@@ -70,6 +72,10 @@ interface AppState {
   addAsistentePotencial: (asistente: AsistentePotencial) => Promise<void>;
   updateAsistentePotencial: (id: string, updates: Partial<AsistentePotencial>) => Promise<void>;
   deleteAsistentePotencial: (id: string) => Promise<void>;
+  importAsistentes: (
+    asistentes: AsistentePotencial[],
+    options?: { replaceDuplicates?: boolean }
+  ) => Promise<ImportAsistentesResult>;
 
   importSponsors: (
     sponsors: Sponsor[],
@@ -250,6 +256,23 @@ export const useStore = create<AppState>()((set, get) => ({
       set({
         asistentesPotenciales: previous,
         saveError: err instanceof Error ? err.message : "Error al eliminar asistente",
+      });
+      throw err;
+    }
+  },
+
+  importAsistentes: async (asistentes, options) => {
+    const previous = get().asistentesPotenciales;
+    set({ saveError: null });
+    try {
+      const result = await importAsistentesBulk(asistentes, options);
+      const refreshed = await fetchAllData();
+      set({ asistentesPotenciales: refreshed.asistentesPotenciales });
+      return result;
+    } catch (err) {
+      set({
+        asistentesPotenciales: previous,
+        saveError: err instanceof Error ? err.message : "Error al importar asistentes",
       });
       throw err;
     }

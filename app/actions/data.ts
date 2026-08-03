@@ -168,6 +168,91 @@ export async function removeAsistentePotencial(id: string) {
   if (error) throw new Error(error.message);
 }
 
+export interface ImportAsistentesOptions {
+  replaceDuplicates?: boolean;
+}
+
+export interface ImportAsistentesResult {
+  imported: number;
+  skipped: number;
+  updated: number;
+  errors: string[];
+}
+
+export async function importAsistentesBulk(
+  asistentes: AsistentePotencial[],
+  options: ImportAsistentesOptions = {}
+): Promise<ImportAsistentesResult> {
+  await requireAuth();
+  const supabase = createSupabaseServer();
+  const replaceDuplicates = options.replaceDuplicates ?? false;
+
+  const { data: existingRows, error: fetchError } = await supabase
+    .from("asistentes_potenciales")
+    .select("id, email");
+
+  if (fetchError) throw new Error(fetchError.message);
+
+  const existingByEmail = new Map<string, string>();
+  for (const row of existingRows ?? []) {
+    const key = String(row.email ?? "").trim().toLowerCase();
+    if (key) existingByEmail.set(key, row.id as string);
+  }
+
+  const toUpsert: AsistentePotencial[] = [];
+  let skipped = 0;
+  let updated = 0;
+  const errors: string[] = [];
+
+  for (const asistente of asistentes) {
+    const key = asistente.email.trim().toLowerCase();
+    if (!key) {
+      skipped += 1;
+      continue;
+    }
+
+    const existingId = existingByEmail.get(key);
+    if (existingId) {
+      if (!replaceDuplicates) {
+        skipped += 1;
+        continue;
+      }
+      toUpsert.push({ ...asistente, id: existingId });
+      updated += 1;
+      continue;
+    }
+
+    toUpsert.push(asistente);
+  }
+
+  if (toUpsert.length === 0) {
+    return { imported: 0, skipped, updated, errors };
+  }
+
+  const chunkSize = 100;
+  let imported = 0;
+
+  for (let i = 0; i < toUpsert.length; i += chunkSize) {
+    const chunk = toUpsert.slice(i, i + chunkSize);
+    const { error } = await supabase
+      .from("asistentes_potenciales")
+      .upsert(chunk.map(asistentePotencialToRow), { onConflict: "id" });
+
+    if (error) {
+      errors.push(error.message);
+      continue;
+    }
+    imported += chunk.length;
+  }
+
+  return {
+    imported: replaceDuplicates ? imported - updated : imported,
+    skipped,
+    updated,
+    errors,
+  };
+}
+
 export interface RemoveSponsorsWithoutEmailResult {
   deleted: number;
 }

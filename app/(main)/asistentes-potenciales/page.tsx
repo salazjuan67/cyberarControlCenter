@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Plus, Search, UserPlus, Users, Mail } from "lucide-react";
+import { Plus, Search, UserPlus, Users, Mail, Upload } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { KPICard } from "@/components/dashboard/KPICard";
 import { AsistenteTable } from "@/components/asistentes/AsistenteTable";
 import { AsistenteDialog } from "@/components/asistentes/AsistenteDialog";
 import { AttendeeEmailPanel } from "@/components/asistentes/AttendeeEmailPanel";
+import { AsistenteImportDialog } from "@/components/asistentes/AsistenteImportDialog";
 import {
   DEFAULT_ASISTENTE_FILTERS,
   filterAsistentes,
@@ -42,6 +43,7 @@ export default function AsistentesPotencialesPage() {
   const { asistentesPotenciales, addAsistentePotencial, updateAsistentePotencial, deleteAsistentePotencial } = useStore();
   const [filters, setFilters] = useState<AsistenteFilters>(DEFAULT_ASISTENTE_FILTERS);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [editing, setEditing] = useState<AsistentePotencial | null>(null);
   const [view, setView] = useState<"lista" | "comunicaciones">("lista");
 
@@ -112,6 +114,10 @@ export default function AsistentesPotencialesPage() {
                   ))}
                 </SelectContent>
               </Select>
+              <Button onClick={() => setImportOpen(true)} size="sm" variant="outline" className="h-8 gap-1.5 border-slate-300 dark:border-slate-700">
+                <Upload className="w-3.5 h-3.5" />
+                Importar Excel
+              </Button>
               <Button onClick={() => { setEditing(null); setDialogOpen(true); }} size="sm" className="bg-violet-600 hover:bg-violet-500 text-white font-semibold h-8 gap-1.5">
                 <Plus className="w-3.5 h-3.5" /> Nuevo contacto
               </Button>
@@ -126,6 +132,7 @@ export default function AsistentesPotencialesPage() {
       </div>
 
       <AsistenteDialog open={dialogOpen} onOpenChange={setDialogOpen} initial={editing ?? undefined} defaultValues={EMPTY} onSave={handleSave} />
+      <AsistenteImportDialog open={importOpen} onOpenChange={setImportOpen} />
     </div>
   );
 }
