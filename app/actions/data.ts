@@ -144,6 +144,38 @@ export async function removeSponsor(id: string) {
   if (error) throw new Error(error.message);
 }
 
+export interface RemoveSponsorsWithoutEmailResult {
+  deleted: number;
+}
+
+export async function removeSponsorsWithoutEmail(): Promise<RemoveSponsorsWithoutEmailResult> {
+  await requireAuth();
+  const supabase = createSupabaseServer();
+
+  const { data, error } = await supabase.from("sponsors").select("id, email");
+  if (error) throw new Error(error.message);
+
+  const ids = (data ?? [])
+    .filter((row) => !String(row.email ?? "").trim())
+    .map((row) => row.id as string);
+
+  if (ids.length === 0) {
+    return { deleted: 0 };
+  }
+
+  const chunkSize = 100;
+  let deleted = 0;
+
+  for (let i = 0; i < ids.length; i += chunkSize) {
+    const chunk = ids.slice(i, i + chunkSize);
+    const { error: deleteError } = await supabase.from("sponsors").delete().in("id", chunk);
+    if (deleteError) throw new Error(deleteError.message);
+    deleted += chunk.length;
+  }
+
+  return { deleted };
+}
+
 export interface ImportSponsorsOptions {
   replaceDuplicates?: boolean;
 }

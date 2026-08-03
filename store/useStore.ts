@@ -14,6 +14,7 @@ import {
   saveConfig,
   saveSponsor,
   removeSponsor,
+  removeSponsorsWithoutEmail,
   saveInscripcion,
   removeInscripcion,
   saveGasto,
@@ -59,6 +60,7 @@ interface AppState {
   addSponsor: (sponsor: Sponsor) => Promise<void>;
   updateSponsor: (id: string, updates: Partial<Sponsor>) => Promise<void>;
   deleteSponsor: (id: string) => Promise<void>;
+  deleteSponsorsWithoutEmail: () => Promise<number>;
   importSponsors: (
     sponsors: Sponsor[],
     options?: { replaceDuplicates?: boolean }
@@ -168,6 +170,25 @@ export const useStore = create<AppState>()((set, get) => ({
       set({
         sponsors: previous,
         saveError: err instanceof Error ? err.message : "Error al eliminar sponsor",
+      });
+      throw err;
+    }
+  },
+
+  deleteSponsorsWithoutEmail: async () => {
+    const previous = get().sponsors;
+    const withoutEmail = previous.filter((s) => !s.email.trim());
+    set({
+      sponsors: previous.filter((s) => s.email.trim()),
+      saveError: null,
+    });
+    try {
+      const { deleted } = await removeSponsorsWithoutEmail();
+      return deleted;
+    } catch (err) {
+      set({
+        sponsors: previous,
+        saveError: err instanceof Error ? err.message : "Error al eliminar sponsors",
       });
       throw err;
     }

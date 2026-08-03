@@ -8,6 +8,7 @@ import {
   Mail,
   ScanSearch,
   Sparkles,
+  Trash2,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -30,11 +31,13 @@ import { parseHunterSourceUrl } from "@/lib/sponsors/hunter";
 import type { Sponsor } from "@/types";
 
 export function SponsorEnrichmentPanel() {
-  const { sponsors, hydrate } = useStore();
+  const { sponsors, hydrate, deleteSponsorsWithoutEmail } = useStore();
   const [stats, setStats] = useState<EnrichmentStats | null>(null);
   const [hunterStatus, setHunterStatus] = useState<HunterStatus | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
   const [scanning, setScanning] = useState(false);
+  const [deletingWithoutEmail, setDeletingWithoutEmail] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [scanProvider, setScanProvider] = useState<"scraper" | "hunter" | null>(null);
   const [lastScan, setLastScan] = useState<ScanResult | null>(null);
   const [actionId, setActionId] = useState<string | null>(null);
@@ -115,6 +118,29 @@ export function SponsorEnrichmentPanel() {
     }
   }
 
+  async function handleDeleteWithoutEmail() {
+    const count = stats?.withoutEmail ?? 0;
+    if (count === 0) return;
+
+    const confirmed = window.confirm(
+      `¿Eliminar ${count} sponsor(s) sin email confirmado? Esta acción no se puede deshacer.`
+    );
+    if (!confirmed) return;
+
+    setDeletingWithoutEmail(true);
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      const deleted = await deleteSponsorsWithoutEmail();
+      setSuccessMessage(`${deleted} sponsor(s) sin email eliminado(s).`);
+      await refreshAll();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al eliminar sponsors");
+    } finally {
+      setDeletingWithoutEmail(false);
+    }
+  }
+
   async function handleReject(id: string) {
     setActionId(id);
     setError(null);
@@ -186,6 +212,24 @@ export function SponsorEnrichmentPanel() {
                 </>
               )}
             </Button>
+            <Button
+              onClick={handleDeleteWithoutEmail}
+              disabled={deletingWithoutEmail || scanning || (stats?.withoutEmail ?? 0) === 0}
+              variant="outline"
+              className="border-red-300 dark:border-red-900/60 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40"
+            >
+              {deletingWithoutEmail ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  Eliminando…
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Sin email ({stats?.withoutEmail ?? 0})
+                </>
+              )}
+            </Button>
           </div>
         </div>
 
@@ -227,6 +271,10 @@ export function SponsorEnrichmentPanel() {
             Último {lastScan.provider === "hunter" ? "Hunter" : "escaneo web"}: {lastScan.scanned}{" "}
             procesados · {lastScan.found} propuestas · {lastScan.errors.length} sin resultado
           </p>
+        )}
+
+        {successMessage && (
+          <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-3">{successMessage}</p>
         )}
 
         {error && (
