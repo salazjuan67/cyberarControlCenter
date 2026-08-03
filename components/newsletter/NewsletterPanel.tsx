@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   AlertCircle,
-  Eye,
   Loader2,
   Mail,
   Send,
@@ -28,6 +27,7 @@ import {
   sendNewsletter,
   sendTestNewsletter,
 } from "@/app/actions/newsletter";
+import { NewsletterHtmlPreview } from "@/components/newsletter/NewsletterHtmlPreview";
 import { NewsletterTrackingPanel } from "@/components/newsletter/NewsletterTrackingPanel";
 import type { NewsletterAudience } from "@/types/newsletter";
 
@@ -47,6 +47,7 @@ export function NewsletterPanel() {
   const { sponsors } = useStore();
   const [configured, setConfigured] = useState(false);
   const [fromEmail, setFromEmail] = useState<string | null>(null);
+  const [fromEmailWarning, setFromEmailWarning] = useState<string | null>(null);
   const [audience, setAudience] = useState<NewsletterAudience>("all_sponsors");
   const [recipientCount, setRecipientCount] = useState(0);
   const [skippedCount, setSkippedCount] = useState(0);
@@ -54,7 +55,6 @@ export function NewsletterPanel() {
   const [customBody, setCustomBody] = useState("");
   const [html, setHtml] = useState("");
   const [testEmail, setTestEmail] = useState("");
-  const [showPreview, setShowPreview] = useState(false);
   const [loadingDraft, setLoadingDraft] = useState(false);
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [sendingTest, setSendingTest] = useState(false);
@@ -77,8 +77,9 @@ export function NewsletterPanel() {
 
   useEffect(() => {
     getNewsletterStatus().then((status) => {
-      setConfigured(status.configured);
+      setConfigured(status.configured && !status.fromEmailWarning);
       setFromEmail(status.fromEmail);
+      setFromEmailWarning(status.fromEmailWarning);
     });
   }, []);
 
@@ -125,7 +126,12 @@ export function NewsletterPanel() {
         setError(result.error ?? "Error al enviar prueba");
         return;
       }
-      setMessage(`Email de prueba enviado a ${testEmail.trim()}.`);
+      const parts = [
+        `Email de prueba enviado a ${testEmail.trim()}.`,
+        result.emailId ? `ID Resend: ${result.emailId}` : null,
+        result.hint ?? null,
+      ].filter(Boolean);
+      setMessage(parts.join(" "));
     } finally {
       setSendingTest(false);
     }
@@ -177,69 +183,79 @@ export function NewsletterPanel() {
     }
   }
 
+  const resendReady = configured && !fromEmailWarning;
+
   return (
     <div className="space-y-4 md:space-y-6">
-      {!configured && (
+      {(!configured || fromEmailWarning) && (
         <div className="flex items-start gap-3 rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-4">
           <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
-              Resend no está configurado
+              {fromEmailWarning ?? "Resend no está configurado"}
             </p>
             <p className="text-xs text-amber-800/80 dark:text-amber-300/80 mt-1 leading-relaxed">
-              Agregá <code className="font-mono">RESEND_API_KEY</code> y{" "}
-              <code className="font-mono">RESEND_FROM_EMAIL</code> en{" "}
-              <code className="font-mono">.env.local</code> (y en Vercel en producción).
-              El remitente debe estar verificado en Resend.
+              Configurá <code className="font-mono">RESEND_API_KEY</code> y{" "}
+              <code className="font-mono">RESEND_FROM_EMAIL</code> en Vercel con un dominio
+              verificado en{" "}
+              <a
+                href="https://resend.com/domains"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline"
+              >
+                Resend
+              </a>
+              . En plan Free solo podés enviar a emails verificados de tu cuenta.
             </p>
           </div>
         </div>
       )}
 
-      {configured && fromEmail && (
+      {resendReady && fromEmail && (
         <div className="rounded-xl border border-cyan-200 dark:border-cyan-500/20 bg-cyan-50 dark:bg-cyan-500/10 px-4 py-3 text-sm text-cyan-900 dark:text-cyan-100">
           Remitente: <span className="font-medium">{fromEmail}</span>
         </div>
       )}
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5 space-y-4">
-          <div className="flex items-center gap-2">
-            <Mail className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
-            <h3 className="text-slate-700 dark:text-slate-200 font-semibold text-sm">
-              Contenido
-            </h3>
-          </div>
+      <div className="grid gap-4 xl:grid-cols-2">
+        <div className="space-y-4">
+          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5 space-y-4">
+            <div className="flex items-center gap-2">
+              <Mail className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+              <h3 className="text-slate-700 dark:text-slate-200 font-semibold text-sm">
+                Contenido
+              </h3>
+            </div>
 
-          <div>
-            <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">
-              Asunto
-            </label>
-            <Input
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              placeholder="Actualización CYBER.AR 2026"
-              className={inputCls}
-            />
-          </div>
+            <div>
+              <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">
+                Asunto
+              </label>
+              <Input
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                placeholder="Actualización CYBER.AR 2026"
+                className={inputCls}
+              />
+            </div>
 
-          <div>
-            <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">
-              Mensaje introductorio (opcional)
-            </label>
-            <Textarea
-              value={customBody}
-              onChange={(e) => setCustomBody(e.target.value)}
-              placeholder="Hola, compartimos el estado del evento..."
-              rows={4}
-              className={inputCls}
-            />
-            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-              Se incluye en el borrador automático junto con KPIs del dashboard.
-            </p>
-          </div>
+            <div>
+              <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">
+                Mensaje introductorio (opcional)
+              </label>
+              <Textarea
+                value={customBody}
+                onChange={(e) => setCustomBody(e.target.value)}
+                placeholder="Hola, compartimos el estado del evento..."
+                rows={3}
+                className={inputCls}
+              />
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                Se incluye en el borrador automático junto con KPIs del dashboard.
+              </p>
+            </div>
 
-          <div className="flex flex-wrap gap-2">
             <Button
               type="button"
               onClick={handleGenerateDraft}
@@ -253,33 +269,31 @@ export function NewsletterPanel() {
               )}
               Generar borrador
             </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setShowPreview((v) => !v)}
-              disabled={!html}
-              className="gap-2 border-slate-300 dark:border-slate-700"
-            >
-              <Eye className="w-4 h-4" />
-              {showPreview ? "Ocultar preview" : "Ver preview"}
-            </Button>
+
+            <div>
+              <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">
+                HTML del email
+              </label>
+              <Textarea
+                value={html}
+                onChange={(e) => setHtml(e.target.value)}
+                placeholder="Generá un borrador o pegá HTML personalizado (incluye <!doctype html> si ya lo tenés)..."
+                rows={14}
+                className={`${inputCls} font-mono text-xs`}
+              />
+            </div>
           </div>
 
-          <div>
-            <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">
-              HTML del email
-            </label>
-            <Textarea
-              value={html}
-              onChange={(e) => setHtml(e.target.value)}
-              placeholder="Generá un borrador o pegá HTML personalizado..."
-              rows={12}
-              className={`${inputCls} font-mono text-xs`}
-            />
+          <div className="xl:hidden">
+            <NewsletterHtmlPreview html={html} subject={subject} />
           </div>
         </div>
 
         <div className="space-y-4">
+          <div className="hidden xl:block sticky top-4">
+            <NewsletterHtmlPreview html={html} subject={subject} />
+          </div>
+
           <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5 space-y-4">
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
@@ -343,7 +357,7 @@ export function NewsletterPanel() {
               type="button"
               variant="outline"
               onClick={handleSendTest}
-              disabled={!configured || sendingTest}
+              disabled={!resendReady || sendingTest}
               className="w-full gap-2 border-slate-300 dark:border-slate-700"
             >
               {sendingTest ? (
@@ -359,7 +373,7 @@ export function NewsletterPanel() {
             <Button
               type="button"
               onClick={handleSendNewsletter}
-              disabled={!configured || sending || recipientCount === 0}
+              disabled={!resendReady || sending || recipientCount === 0}
               className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold gap-2"
             >
               {sending ? (
@@ -386,20 +400,6 @@ export function NewsletterPanel() {
       {error && (
         <div className="rounded-xl border border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 px-4 py-3 text-sm text-red-700 dark:text-red-300">
           {error}
-        </div>
-      )}
-
-      {showPreview && html && (
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-          <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 text-sm font-medium text-slate-700 dark:text-slate-200">
-            Vista previa
-          </div>
-          <iframe
-            title="Newsletter preview"
-            srcDoc={html}
-            className="w-full min-h-[520px] bg-white"
-            sandbox=""
-          />
         </div>
       )}
 

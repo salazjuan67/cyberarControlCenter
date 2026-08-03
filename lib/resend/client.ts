@@ -11,6 +11,17 @@ export function getResendFromEmail(): string | null {
   return from || null;
 }
 
+export function getResendFromEmailIssue(from: string | null): string | null {
+  if (!from) return "RESEND_FROM_EMAIL no configurada";
+  if (/tudominio\.com|example\.com|yourdomain|placeholder/i.test(from)) {
+    return "El remitente usa un dominio placeholder. Configurá un email de un dominio verificado en Resend.";
+  }
+  if (!from.includes("@")) {
+    return "RESEND_FROM_EMAIL no parece un email válido";
+  }
+  return null;
+}
+
 export function getResendClient(): Resend {
   const apiKey = process.env.RESEND_API_KEY?.trim();
   if (!apiKey) {
@@ -31,6 +42,10 @@ export function assertResendReady(): { from: string } {
   }
   if (!from) {
     throw new Error("RESEND_FROM_EMAIL no configurada");
+  }
+  const fromIssue = getResendFromEmailIssue(from);
+  if (fromIssue) {
+    throw new Error(fromIssue);
   }
   return { from };
 }

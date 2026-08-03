@@ -11,7 +11,9 @@ import {
   getResendClient,
   getResendFromEmail,
   isResendConfigured,
+  getResendFromEmailIssue,
 } from "@/lib/resend/client";
+import { normalizeNewsletterHtml } from "@/lib/newsletter/html";
 import { resolveSponsorRecipients } from "@/lib/newsletter/recipients";
 import {
   buildCampaignStats,
@@ -70,9 +72,11 @@ async function loadEventContext(): Promise<{
 
 export async function getNewsletterStatus(): Promise<NewsletterStatus> {
   await requireAuth();
+  const fromEmail = getResendFromEmail();
   return {
-    configured: isResendConfigured() && Boolean(getResendFromEmail()),
-    fromEmail: getResendFromEmail(),
+    configured: isResendConfigured() && Boolean(fromEmail),
+    fromEmail,
+    fromEmailWarning: getResendFromEmailIssue(fromEmail),
   };
 }
 
@@ -164,18 +168,30 @@ export async function sendTestNewsletter(
   try {
     const { from } = assertResendReady();
     const resend = getResendClient();
-    const { error } = await resend.emails.send({
+    const html = normalizeNewsletterHtml(input.html);
+    const { data, error } = await resend.emails.send({
       from,
       to: [to],
       subject: `[Prueba] ${input.subject}`,
-      html: input.html,
+      html,
     });
 
     if (error) {
       return { ok: false, error: error.message };
     }
 
-    return { ok: true };
+    if (!data?.id) {
+      return {
+        ok: false,
+        error: "Resend aceptó el envío pero no devolvió un ID. Revisá la configuración del remitente.",
+      };
+    }
+
+    return {
+      ok: true,
+      emailId: data.id,
+      hint: "Si no llega en 2–3 minutos, revisá spam y que el dominio del remitente esté verificado en Resend.",
+    };
   } catch (err) {
     return {
       ok: false,
@@ -194,7 +210,7 @@ export async function sendNewsletter(
     return { ok: false, sent: 0, failed: 0, errors: ["El asunto es obligatorio"] };
   }
 
-  const html = input.html.trim();
+  const html = normalizeNewsletterHtml(input.html.trim());
   if (!html) {
     return { ok: false, sent: 0, failed: 0, errors: ["El contenido HTML es obligatorio"] };
   }

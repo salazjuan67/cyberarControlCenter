@@ -44,11 +44,14 @@ export interface SendTestEmailInput {
 export interface SendTestEmailResult {
   ok: boolean;
   error?: string;
+  emailId?: string;
+  hint?: string;
 }
 
 export interface NewsletterStatus {
   configured: boolean;
   fromEmail: string | null;
+  fromEmailWarning: string | null;
 }
 
 export interface NewsletterSummaryDraft {
