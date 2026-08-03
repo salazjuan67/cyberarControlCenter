@@ -59,6 +59,7 @@ export function SponsorEnrichmentPanel() {
     hydrate({
       config: data.config,
       sponsors: data.sponsors,
+      asistentesPotenciales: data.asistentesPotenciales,
       inscripciones: data.inscripciones,
       gastos: data.gastos,
       escenarios: data.escenarios,

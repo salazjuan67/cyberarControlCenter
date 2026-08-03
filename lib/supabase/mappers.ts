@@ -6,6 +6,7 @@ import type {
   EscenarioConfig,
   Moneda,
 } from "@/types";
+import type { AsistentePotencial } from "@/types/asistentes";
 
 function asMoneda(value: unknown): Moneda {
   if (value === "USD" || value === "ARS" || value === "EUR") return value;
@@ -174,5 +175,51 @@ export function escenarioToRow(e: EscenarioConfig) {
     precio_prom_presencial: e.precioPromPresencial,
     precio_prom_virtual: e.precioPromVirtual,
     monto_prom_sponsor: e.montoPromSponsor,
+  };
+}
+
+export function mapAsistentePotencial(row: Record<string, unknown>): AsistentePotencial {
+  return {
+    id: row.id as string,
+    nombre: (row.nombre as string) ?? "",
+    apellido: (row.apellido as string) ?? "",
+    email: (row.email as string) ?? "",
+    telefono: (row.telefono as string) ?? "",
+    organizacion: (row.organizacion as string) ?? "",
+    cargo: (row.cargo as string) ?? "",
+    categoria: row.categoria as AsistentePotencial["categoria"],
+    modalidad: (row.modalidad as AsistentePotencial["modalidad"]) ?? "",
+    estado: row.estado as AsistentePotencial["estado"],
+    origen: (row.origen as string) ?? "",
+    pais: (row.pais as string) ?? "",
+    region: (row.region as string) ?? "",
+    responsable: (row.responsable as string) ?? "",
+    probabilidad: row.probabilidad as number,
+    ultimoContacto: (row.ultimo_contacto as string) ?? "",
+    proximaAccion: (row.proxima_accion as string) ?? "",
+    notas: (row.notas as string) ?? "",
+  };
+}
+
+export function asistentePotencialToRow(a: AsistentePotencial) {
+  return {
+    id: a.id,
+    nombre: a.nombre,
+    apellido: a.apellido,
+    email: a.email,
+    telefono: a.telefono,
+    organizacion: a.organizacion,
+    cargo: a.cargo,
+    categoria: a.categoria,
+    modalidad: a.modalidad,
+    estado: a.estado,
+    origen: a.origen,
+    pais: a.pais,
+    region: a.region,
+    responsable: a.responsable,
+    probabilidad: a.probabilidad,
+    ultimo_contacto: a.ultimoContacto || null,
+    proxima_accion: a.proximaAccion,
+    notas: a.notas,
   };
 }

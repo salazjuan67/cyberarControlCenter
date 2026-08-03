@@ -8,11 +8,13 @@ import {
   mapInscripcion,
   mapGasto,
   mapEscenario,
+  mapAsistentePotencial,
   configToRow,
   sponsorToRow,
   inscripcionToRow,
   gastoToRow,
   escenarioToRow,
+  asistentePotencialToRow,
 } from "@/lib/supabase/mappers";
 import { sponsorKey } from "@/lib/sponsors/import";
 import {
@@ -26,10 +28,12 @@ import type {
   Gasto,
   EscenarioConfig,
 } from "@/types";
+import type { AsistentePotencial } from "@/types/asistentes";
 
 export interface AppData {
   config: EventConfig;
   sponsors: Sponsor[];
+  asistentesPotenciales: AsistentePotencial[];
   inscripciones: Inscripcion[];
   gastos: Gasto[];
   escenarios: EscenarioConfig[];
@@ -56,6 +60,7 @@ async function seedInitialDatabase(): Promise<AppData> {
   return {
     config: defaultConfig,
     sponsors: [],
+    asistentesPotenciales: [],
     inscripciones: [],
     gastos: [],
     escenarios,
@@ -66,10 +71,11 @@ export async function fetchAllData(): Promise<AppData> {
   await requireAuth();
   const supabase = createSupabaseServer();
 
-  const [configRes, sponsorsRes, inscripcionesRes, gastosRes, escenariosRes] =
+  const [configRes, sponsorsRes, asistentesRes, inscripcionesRes, gastosRes, escenariosRes] =
     await Promise.all([
       supabase.from("event_config").select("*").eq("id", 1).maybeSingle(),
       supabase.from("sponsors").select("*").order("created_at"),
+      supabase.from("asistentes_potenciales").select("*").order("created_at"),
       supabase.from("inscripciones").select("*").order("created_at"),
       supabase.from("gastos").select("*").order("created_at"),
       supabase.from("escenarios").select("*"),
@@ -78,6 +84,7 @@ export async function fetchAllData(): Promise<AppData> {
   const errors = [
     configRes.error,
     sponsorsRes.error,
+    asistentesRes.error,
     inscripcionesRes.error,
     gastosRes.error,
     escenariosRes.error,
@@ -113,6 +120,7 @@ export async function fetchAllData(): Promise<AppData> {
   return {
     config,
     sponsors: (sponsorsRes.data ?? []).map(mapSponsor),
+    asistentesPotenciales: (asistentesRes.data ?? []).map(mapAsistentePotencial),
     inscripciones: (inscripcionesRes.data ?? []).map(mapInscripcion),
     gastos: (gastosRes.data ?? []).map(mapGasto),
     escenarios,
@@ -141,6 +149,22 @@ export async function removeSponsor(id: string) {
   await requireAuth();
   const supabase = createSupabaseServer();
   const { error } = await supabase.from("sponsors").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+export async function saveAsistentePotencial(asistente: AsistentePotencial) {
+  await requireAuth();
+  const supabase = createSupabaseServer();
+  const { error } = await supabase
+    .from("asistentes_potenciales")
+    .upsert(asistentePotencialToRow(asistente), { onConflict: "id" });
+  if (error) throw new Error(error.message);
+}
+
+export async function removeAsistentePotencial(id: string) {
+  await requireAuth();
+  const supabase = createSupabaseServer();
+  const { error } = await supabase.from("asistentes_potenciales").delete().eq("id", id);
   if (error) throw new Error(error.message);
 }
 

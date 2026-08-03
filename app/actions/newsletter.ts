@@ -78,7 +78,7 @@ export async function getNewsletterStatus(): Promise<NewsletterStatus> {
   return {
     configured: isResendConfigured() && Boolean(fromEmail),
     fromEmail,
-    fromEmailWarning: getResendFromEmailIssue(fromEmail),
+    fromEmailWarning: getResendFromEmailIssue(fromEmail, "RESEND_FROM_EMAIL"),
   };
 }
 

@@ -1,0 +1,72 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { Loader2, Mail } from "lucide-react";
+import { getAttendeeEmailHistory } from "@/app/actions/attendee-email";
+import { DeliveryStatusBadge, formatNewsletterDate } from "@/lib/newsletter/display";
+import type { AttendeeEmailHistoryEntry } from "@/types/asistentes";
+
+interface AsistenteEmailHistoryProps {
+  attendeeId: string;
+  email?: string;
+}
+
+export function AsistenteEmailHistory({ attendeeId, email }: AsistenteEmailHistoryProps) {
+  const [history, setHistory] = useState<AttendeeEmailHistoryEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    getAttendeeEmailHistory(attendeeId, email)
+      .then(setHistory)
+      .catch((err: Error) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, [attendeeId, email]);
+
+  return (
+    <div className="col-span-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <Mail className="w-4 h-4 text-violet-500" />
+        <h4 className="text-sm font-medium text-slate-800 dark:text-slate-200">
+          Comunicaciones enviadas
+        </h4>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center gap-2 text-xs text-slate-500 py-2">
+          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          Cargando historial...
+        </div>
+      ) : error ? (
+        <p className="text-xs text-red-500">{error}</p>
+      ) : history.length === 0 ? (
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          Todavía no recibió envíos masivos desde comunicaciones a asistentes.
+        </p>
+      ) : (
+        <ul className="space-y-2 max-h-48 overflow-y-auto pr-1">
+          {history.map((entry) => (
+            <li
+              key={entry.deliveryId}
+              className="rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 px-3 py-2"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">
+                    {entry.subject}
+                  </p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    {formatNewsletterDate(entry.sentAt || entry.campaignDate)}
+                  </p>
+                </div>
+                <DeliveryStatusBadge status={entry.status} />
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}

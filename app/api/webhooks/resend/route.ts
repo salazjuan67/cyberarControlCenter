@@ -62,36 +62,38 @@ export async function POST(request: Request) {
 
   const supabase = createSupabaseServer();
 
-  const { data: existing, error: fetchError } = await supabase
-    .from("newsletter_deliveries")
-    .select("status")
-    .eq("resend_email_id", emailId)
-    .maybeSingle();
+  for (const table of ["newsletter_deliveries", "attendee_email_deliveries"] as const) {
+    const { data: existing, error: fetchError } = await supabase
+      .from(table)
+      .select("status")
+      .eq("resend_email_id", emailId)
+      .maybeSingle();
 
-  if (fetchError) {
-    console.error("Failed to load newsletter delivery:", fetchError.message);
-    return Response.json({ error: "Database lookup failed" }, { status: 500 });
+    if (fetchError) {
+      console.error(`Failed to load ${table}:`, fetchError.message);
+      continue;
+    }
+
+    if (!existing) continue;
+
+    const currentStatus = existing.status as NewsletterDeliveryStatus;
+    const nextStatus = update.status as NewsletterDeliveryStatus;
+    if (STATUS_RANK[nextStatus] < STATUS_RANK[currentStatus]) {
+      return Response.json({ ok: true, ignored: true });
+    }
+
+    const { error } = await supabase
+      .from(table)
+      .update(update)
+      .eq("resend_email_id", emailId);
+
+    if (error) {
+      console.error(`Failed to update ${table}:`, error.message);
+      return Response.json({ error: "Database update failed" }, { status: 500 });
+    }
+
+    return Response.json({ ok: true });
   }
 
-  if (!existing) {
-    return Response.json({ ok: true, ignored: true });
-  }
-
-  const currentStatus = existing.status as NewsletterDeliveryStatus;
-  const nextStatus = update.status as NewsletterDeliveryStatus;
-  if (STATUS_RANK[nextStatus] < STATUS_RANK[currentStatus]) {
-    return Response.json({ ok: true, ignored: true });
-  }
-
-  const { error } = await supabase
-    .from("newsletter_deliveries")
-    .update(update)
-    .eq("resend_email_id", emailId);
-
-  if (error) {
-    console.error("Failed to update newsletter delivery:", error.message);
-    return Response.json({ error: "Database update failed" }, { status: 500 });
-  }
-
-  return Response.json({ ok: true });
+  return Response.json({ ok: true, ignored: true });
 }

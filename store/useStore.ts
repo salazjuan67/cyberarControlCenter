@@ -6,6 +6,7 @@ import type {
   Gasto,
   EscenarioConfig,
 } from "@/types";
+import type { AsistentePotencial } from "@/types/asistentes";
 import {
   defaultConfig,
   emptyEscenarios,
@@ -14,6 +15,8 @@ import {
   saveConfig,
   saveSponsor,
   removeSponsor,
+  saveAsistentePotencial,
+  removeAsistentePotencial,
   removeSponsorsWithoutEmail,
   saveInscripcion,
   removeInscripcion,
@@ -33,6 +36,7 @@ interface AppState {
   isLoading: boolean;
   config: EventConfig;
   sponsors: Sponsor[];
+  asistentesPotenciales: AsistentePotencial[];
   inscripciones: Inscripcion[];
   gastos: Gasto[];
   escenarios: EscenarioConfig[];
@@ -49,6 +53,7 @@ interface AppState {
   hydrate: (data: {
     config: EventConfig;
     sponsors: Sponsor[];
+    asistentesPotenciales: AsistentePotencial[];
     inscripciones: Inscripcion[];
     gastos: Gasto[];
     escenarios: EscenarioConfig[];
@@ -61,6 +66,11 @@ interface AppState {
   updateSponsor: (id: string, updates: Partial<Sponsor>) => Promise<void>;
   deleteSponsor: (id: string) => Promise<void>;
   deleteSponsorsWithoutEmail: () => Promise<number>;
+
+  addAsistentePotencial: (asistente: AsistentePotencial) => Promise<void>;
+  updateAsistentePotencial: (id: string, updates: Partial<AsistentePotencial>) => Promise<void>;
+  deleteAsistentePotencial: (id: string) => Promise<void>;
+
   importSponsors: (
     sponsors: Sponsor[],
     options?: { replaceDuplicates?: boolean }
@@ -97,6 +107,7 @@ export const useStore = create<AppState>()((set, get) => ({
   isLoading: true,
   config: defaultConfig,
   sponsors: [],
+  asistentesPotenciales: [],
   inscripciones: [],
   gastos: [],
   escenarios: emptyEscenarios,
@@ -189,6 +200,56 @@ export const useStore = create<AppState>()((set, get) => ({
       set({
         sponsors: previous,
         saveError: err instanceof Error ? err.message : "Error al eliminar sponsors",
+      });
+      throw err;
+    }
+  },
+
+  addAsistentePotencial: async (asistente) => {
+    set((state) => ({
+      asistentesPotenciales: [...state.asistentesPotenciales, asistente],
+      saveError: null,
+    }));
+    try {
+      await saveAsistentePotencial(asistente);
+    } catch (err) {
+      set((state) => ({
+        asistentesPotenciales: state.asistentesPotenciales.filter((a) => a.id !== asistente.id),
+        saveError: err instanceof Error ? err.message : "Error al guardar asistente",
+      }));
+      throw err;
+    }
+  },
+
+  updateAsistentePotencial: async (id, updates) => {
+    const previous = get().asistentesPotenciales;
+    const updated = previous.map((a) => (a.id === id ? { ...a, ...updates } : a));
+    set({ asistentesPotenciales: updated, saveError: null });
+    const asistente = updated.find((a) => a.id === id);
+    if (!asistente) return;
+    try {
+      await saveAsistentePotencial(asistente);
+    } catch (err) {
+      set({
+        asistentesPotenciales: previous,
+        saveError: err instanceof Error ? err.message : "Error al guardar asistente",
+      });
+      throw err;
+    }
+  },
+
+  deleteAsistentePotencial: async (id) => {
+    const previous = get().asistentesPotenciales;
+    set({
+      asistentesPotenciales: previous.filter((a) => a.id !== id),
+      saveError: null,
+    });
+    try {
+      await removeAsistentePotencial(id);
+    } catch (err) {
+      set({
+        asistentesPotenciales: previous,
+        saveError: err instanceof Error ? err.message : "Error al eliminar asistente",
       });
       throw err;
     }
