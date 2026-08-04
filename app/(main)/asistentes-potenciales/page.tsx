@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { KPICard } from "@/components/dashboard/KPICard";
 import { AsistenteTable } from "@/components/asistentes/AsistenteTable";
+import { AsistentePipeline } from "@/components/asistentes/AsistentePipeline";
 import { AsistenteDialog } from "@/components/asistentes/AsistenteDialog";
 import { AttendeeEmailPanel } from "@/components/asistentes/AttendeeEmailPanel";
 import { AsistenteImportDialog } from "@/components/asistentes/AsistenteImportDialog";
@@ -45,7 +46,7 @@ export default function AsistentesPotencialesPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [editing, setEditing] = useState<AsistentePotencial | null>(null);
-  const [view, setView] = useState<"lista" | "comunicaciones">("lista");
+  const [view, setView] = useState<"lista" | "pipeline" | "comunicaciones">("lista");
 
   const filtered = useMemo(() => filterAsistentes(asistentesPotenciales, filters), [asistentesPotenciales, filters]);
   const conEmail = asistentesPotenciales.filter((a) => a.email.trim()).length;
@@ -71,7 +72,7 @@ export default function AsistentesPotencialesPage() {
         badge="Conversión"
         actions={
           <div className="hidden sm:flex rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
-            {(["lista", "comunicaciones"] as const).map((v) => (
+            {(["lista", "pipeline", "comunicaciones"] as const).map((v) => (
               <button
                 key={v}
                 onClick={() => setView(v)}
@@ -79,7 +80,7 @@ export default function AsistentesPotencialesPage() {
                   view === v ? "bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white" : "bg-white dark:bg-slate-900 text-slate-500"
                 }`}
               >
-                {v === "lista" ? "Lista" : "Comunicaciones"}
+                {v === "lista" ? "Lista" : v === "pipeline" ? "Pipeline" : "Comunicaciones"}
               </button>
             ))}
           </div>
@@ -87,7 +88,7 @@ export default function AsistentesPotencialesPage() {
       />
 
       <div className="p-4 md:p-6 space-y-4 md:space-y-6 max-w-6xl">
-        {view === "lista" ? (
+        {view !== "comunicaciones" && (
           <>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <KPICard title="Total contactos" value={String(asistentesPotenciales.length)} icon={Users} accent="cyan" />
@@ -124,8 +125,13 @@ export default function AsistentesPotencialesPage() {
             </div>
 
             <p className="text-xs text-slate-500">{filtered.length} resultado(s)</p>
-            <AsistenteTable asistentes={filtered} onEdit={(a) => { setEditing(a); setDialogOpen(true); }} onDelete={deleteAsistentePotencial} />
           </>
+        )}
+
+        {view === "lista" ? (
+          <AsistenteTable asistentes={filtered} onEdit={(a) => { setEditing(a); setDialogOpen(true); }} onDelete={deleteAsistentePotencial} />
+        ) : view === "pipeline" ? (
+          <AsistentePipeline asistentes={filtered} onEdit={(a) => { setEditing(a); setDialogOpen(true); }} />
         ) : (
           <AttendeeEmailPanel />
         )}
