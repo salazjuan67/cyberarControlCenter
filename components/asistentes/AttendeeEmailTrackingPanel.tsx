@@ -10,6 +10,11 @@ import {
   retryFailedAttendeeEmails,
 } from "@/app/actions/attendee-email";
 import { DeliveryStatusBadge, formatNewsletterDate } from "@/lib/newsletter/display";
+import {
+  DELIVERY_FILTER_LABELS,
+  matchesDeliveryFilter,
+  type DeliveryStatFilter,
+} from "@/lib/email/delivery-filters";
 import type { AttendeeEmailCampaign, AttendeeEmailCampaignDetail, AttendeeEmailDeliveryRow } from "@/types/asistentes";
 
 const AUDIENCE_LABELS: Record<string, string> = {
@@ -18,20 +23,36 @@ const AUDIENCE_LABELS: Record<string, string> = {
   interested: "En pipeline",
 };
 
-function RecipientTable({ deliveries, query }: { deliveries: AttendeeEmailDeliveryRow[]; query: string }) {
+function RecipientTable({
+  deliveries,
+  query,
+  statusFilter,
+}: {
+  deliveries: AttendeeEmailDeliveryRow[];
+  query: string;
+  statusFilter: DeliveryStatFilter;
+}) {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return deliveries;
-    return deliveries.filter(
-      (d) =>
+    return deliveries.filter((d) => {
+      if (!matchesDeliveryFilter(d, statusFilter)) return false;
+      if (!q) return true;
+      return (
         d.organizacion.toLowerCase().includes(q) ||
         d.recipientEmail.toLowerCase().includes(q) ||
         d.recipientName.toLowerCase().includes(q)
-    );
-  }, [deliveries, query]);
+      );
+    });
+  }, [deliveries, query, statusFilter]);
 
   if (filtered.length === 0) {
-    return <p className="text-sm text-slate-500 py-6 text-center">Sin destinatarios.</p>;
+    return (
+      <p className="text-sm text-slate-500 py-6 text-center">
+        {query || statusFilter !== "all"
+          ? "Ningún destinatario coincide con el filtro."
+          : "Sin destinatarios."}
+      </p>
+    );
   }
 
   return (
@@ -42,6 +63,7 @@ function RecipientTable({ deliveries, query }: { deliveries: AttendeeEmailDelive
             <th className="px-3 py-2">Nombre</th>
             <th className="px-3 py-2">Email</th>
             <th className="px-3 py-2">Estado</th>
+            <th className="px-3 py-2">Abierto</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -53,15 +75,33 @@ function RecipientTable({ deliveries, query }: { deliveries: AttendeeEmailDelive
               </td>
               <td className="px-3 py-2.5 font-mono text-xs">{row.recipientEmail}</td>
               <td className="px-3 py-2.5"><DeliveryStatusBadge status={row.status} /></td>
+              <td className="px-3 py-2.5 text-xs text-slate-500">
+                {row.openedAt ? formatNewsletterDate(row.openedAt) : "—"}
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
+      <p className="px-3 py-2 text-[10px] text-slate-400 border-t border-slate-100 dark:border-slate-800">
+        Mostrando {filtered.length} de {deliveries.length}
+      </p>
     </div>
   );
 }
 
-function StatBox({ label, value, accent }: { label: string; value: number; accent?: "emerald" | "red" | "amber" | "cyan" }) {
+function StatBox({
+  label,
+  value,
+  accent,
+  active,
+  onClick,
+}: {
+  label: string;
+  value: number;
+  accent?: "emerald" | "red" | "amber" | "cyan" | "violet";
+  active?: boolean;
+  onClick?: () => void;
+}) {
   const accentCls =
     accent === "emerald"
       ? "text-emerald-600 dark:text-emerald-400"
@@ -71,13 +111,23 @@ function StatBox({ label, value, accent }: { label: string; value: number; accen
           ? "text-amber-600 dark:text-amber-400"
           : accent === "cyan"
             ? "text-cyan-600 dark:text-cyan-400"
-            : "text-slate-800 dark:text-slate-100";
+            : accent === "violet"
+              ? "text-violet-600 dark:text-violet-400"
+              : "text-slate-800 dark:text-slate-100";
 
   return (
-    <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2">
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-lg border px-3 py-2 text-left transition-colors w-full ${
+        active
+          ? "border-violet-400 bg-violet-50 dark:bg-violet-500/15 ring-1 ring-violet-300 dark:ring-violet-500/40"
+          : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-violet-200 dark:hover:border-violet-500/30"
+      }`}
+    >
       <p className="text-[10px] uppercase text-slate-400">{label}</p>
-      <p className={`text-lg font-semibold ${accentCls}`}>{value}</p>
-    </div>
+      <p className={`text-lg font-semibold tabular-nums ${accentCls}`}>{value}</p>
+    </button>
   );
 }
 
@@ -95,6 +145,7 @@ export function AttendeeEmailTrackingPanel({ html = "", subject = "", onRetryRes
   const [refreshing, setRefreshing] = useState(false);
   const [retrying, setRetrying] = useState(false);
   const [recipientQuery, setRecipientQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<DeliveryStatFilter>("all");
 
   const loadDetail = useCallback(async (id: string) => {
     setDetail(await getAttendeeEmailCampaignDetail(id));
@@ -117,6 +168,7 @@ export function AttendeeEmailTrackingPanel({ html = "", subject = "", onRetryRes
   useEffect(() => {
     if (selectedId) {
       setRecipientQuery("");
+      setStatusFilter("all");
       loadDetail(selectedId);
     }
   }, [selectedId, loadDetail]);
@@ -241,14 +293,72 @@ export function AttendeeEmailTrackingPanel({ html = "", subject = "", onRetryRes
             )}
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-            <StatBox label="Total" value={detail.stats.total} />
-            <StatBox label="Enviados" value={detail.stats.sent} accent="cyan" />
-            <StatBox label="Entregados" value={detail.stats.delivered} accent="emerald" />
-            <StatBox label="Rebotados" value={detail.stats.bounced} accent="red" />
-            <StatBox label="Fallidos" value={detail.stats.failed} accent="red" />
-            <StatBox label="Pendientes" value={detail.stats.pending} accent="amber" />
+          <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3">
+            <StatBox
+              label="Total"
+              value={detail.stats.total}
+              active={statusFilter === "all"}
+              onClick={() => setStatusFilter("all")}
+            />
+            <StatBox
+              label="Enviados"
+              value={detail.stats.sent}
+              accent="cyan"
+              active={statusFilter === "sent"}
+              onClick={() => setStatusFilter("sent")}
+            />
+            <StatBox
+              label="Entregados"
+              value={detail.stats.delivered}
+              accent="emerald"
+              active={statusFilter === "delivered"}
+              onClick={() => setStatusFilter("delivered")}
+            />
+            <StatBox
+              label="Abiertos"
+              value={detail.stats.opened}
+              accent="violet"
+              active={statusFilter === "opened"}
+              onClick={() => setStatusFilter("opened")}
+            />
+            <StatBox
+              label="Rebotados"
+              value={detail.stats.bounced}
+              accent="red"
+              active={statusFilter === "bounced"}
+              onClick={() => setStatusFilter("bounced")}
+            />
+            <StatBox
+              label="Fallidos"
+              value={detail.stats.failed}
+              accent="red"
+              active={statusFilter === "failed"}
+              onClick={() => setStatusFilter("failed")}
+            />
+            <StatBox
+              label="Pendientes"
+              value={detail.stats.pending}
+              accent="amber"
+              active={statusFilter === "pending"}
+              onClick={() => setStatusFilter("pending")}
+            />
           </div>
+
+          {statusFilter !== "all" && (
+            <p className="text-xs text-violet-700 dark:text-violet-300">
+              Filtrando por: <strong>{DELIVERY_FILTER_LABELS[statusFilter]}</strong>
+              {" · "}
+              <button type="button" className="underline" onClick={() => setStatusFilter("all")}>
+                Ver todos
+              </button>
+            </p>
+          )}
+
+          {detail.stats.delivered > 0 && (
+            <p className="text-xs text-slate-500">
+              Tasa de apertura: {detail.stats.openRate}% ({detail.stats.opened} de {detail.stats.delivered} entregados)
+            </p>
+          )}
 
           {detail.stats.failed > 0 && !html.trim() && !detail.campaign.html?.trim() && (
             <p className="text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-lg px-3 py-2">
@@ -260,7 +370,11 @@ export function AttendeeEmailTrackingPanel({ html = "", subject = "", onRetryRes
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
             <Input value={recipientQuery} onChange={(e) => setRecipientQuery(e.target.value)} placeholder="Buscar..." className="pl-9 h-9 text-sm" />
           </div>
-          <RecipientTable deliveries={detail.deliveries} query={recipientQuery} />
+          <RecipientTable
+            deliveries={detail.deliveries}
+            query={recipientQuery}
+            statusFilter={statusFilter}
+          />
         </div>
       )}
     </div>

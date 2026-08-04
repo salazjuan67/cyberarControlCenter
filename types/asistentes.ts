@@ -93,6 +93,7 @@ export interface AttendeeEmailDeliveryRow {
   failedAt: string;
   bounceReason: string;
   lastEventAt: string;
+  openedAt: string;
 }
 
 export interface AttendeeEmailCampaignStats {
@@ -105,8 +106,10 @@ export interface AttendeeEmailCampaignStats {
   bounced: number;
   failed: number;
   pending: number;
+  opened: number;
   deliveryRate: number;
   bounceRate: number;
+  openRate: number;
 }
 
 export interface AttendeeEmailCampaignDetail {

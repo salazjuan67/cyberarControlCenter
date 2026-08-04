@@ -55,6 +55,39 @@ export async function POST(request: Request) {
     return Response.json({ ok: true, ignored: true });
   }
 
+  const supabase = createSupabaseServer();
+
+  if (event.type === "email.opened") {
+    const at = eventTimestamp(event);
+    for (const table of ["newsletter_deliveries", "attendee_email_deliveries"] as const) {
+      const { data: existing, error: fetchError } = await supabase
+        .from(table)
+        .select("opened_at")
+        .eq("resend_email_id", emailId)
+        .maybeSingle();
+
+      if (fetchError) {
+        console.error(`Failed to load ${table}:`, fetchError.message);
+        continue;
+      }
+      if (!existing || existing.opened_at) continue;
+
+      const { error } = await supabase
+        .from(table)
+        .update({ opened_at: at, last_event_at: at })
+        .eq("resend_email_id", emailId);
+
+      if (error) {
+        console.error(`Failed to update ${table} open:`, error.message);
+        return Response.json({ error: "Database update failed" }, { status: 500 });
+      }
+
+      return Response.json({ ok: true });
+    }
+
+    return Response.json({ ok: true, ignored: true });
+  }
+
   const update = buildDeliveryUpdate(event);
   if (!update) {
     return Response.json({ ok: true, ignored: true });

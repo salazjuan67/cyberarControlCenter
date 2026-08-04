@@ -35,6 +35,7 @@ export function mapAttendeeDelivery(row: Record<string, unknown>): AttendeeEmail
     failedAt: (row.failed_at as string) ?? "",
     bounceReason: (row.bounce_reason as string) ?? "",
     lastEventAt: (row.last_event_at as string) ?? "",
+    openedAt: (row.opened_at as string) ?? "",
   };
 }
 
@@ -52,10 +53,12 @@ export function buildAttendeeCampaignStats(
   const pending = deliveries.filter((d) =>
     ["pending", "sent", "delayed"].includes(d.status)
   ).length;
+  const opened = deliveries.filter((d) => Boolean(d.openedAt)).length;
 
   const resolved = delivered + bounced + failed;
   const deliveryRate = resolved > 0 ? Math.round((delivered / resolved) * 100) : 0;
   const bounceRate = resolved > 0 ? Math.round((bounced / resolved) * 100) : 0;
+  const openRate = delivered > 0 ? Math.round((opened / delivered) * 100) : 0;
 
   return {
     campaignId: campaign.id,
@@ -67,7 +70,9 @@ export function buildAttendeeCampaignStats(
     bounced,
     failed,
     pending,
+    opened,
     deliveryRate,
     bounceRate,
+    openRate,
   };
 }
