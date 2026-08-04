@@ -69,6 +69,13 @@ export interface AttendeeEmailCampaign {
   sentCount: number;
   failedCount: number;
   createdAt: string;
+  html?: string;
+}
+
+export interface RetryFailedAttendeeEmailInput {
+  campaignId: string;
+  html?: string;
+  subject?: string;
 }
 
 export interface AttendeeEmailDeliveryRow {

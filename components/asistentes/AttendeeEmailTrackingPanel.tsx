@@ -1,12 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { History, Loader2, RefreshCw, Search } from "lucide-react";
+import { History, Loader2, RefreshCw, RotateCcw, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   getAttendeeEmailCampaignDetail,
   getAttendeeEmailCampaigns,
+  retryFailedAttendeeEmails,
 } from "@/app/actions/attendee-email";
 import { DeliveryStatusBadge, formatNewsletterDate } from "@/lib/newsletter/display";
 import type { AttendeeEmailCampaign, AttendeeEmailCampaignDetail, AttendeeEmailDeliveryRow } from "@/types/asistentes";
@@ -60,12 +61,39 @@ function RecipientTable({ deliveries, query }: { deliveries: AttendeeEmailDelive
   );
 }
 
-export function AttendeeEmailTrackingPanel() {
+function StatBox({ label, value, accent }: { label: string; value: number; accent?: "emerald" | "red" | "amber" | "cyan" }) {
+  const accentCls =
+    accent === "emerald"
+      ? "text-emerald-600 dark:text-emerald-400"
+      : accent === "red"
+        ? "text-red-600 dark:text-red-400"
+        : accent === "amber"
+          ? "text-amber-600 dark:text-amber-400"
+          : accent === "cyan"
+            ? "text-cyan-600 dark:text-cyan-400"
+            : "text-slate-800 dark:text-slate-100";
+
+  return (
+    <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2">
+      <p className="text-[10px] uppercase text-slate-400">{label}</p>
+      <p className={`text-lg font-semibold ${accentCls}`}>{value}</p>
+    </div>
+  );
+}
+
+interface AttendeeEmailTrackingPanelProps {
+  html?: string;
+  subject?: string;
+  onRetryResult?: (message: string | null, error: string | null) => void;
+}
+
+export function AttendeeEmailTrackingPanel({ html = "", subject = "", onRetryResult }: AttendeeEmailTrackingPanelProps) {
   const [campaigns, setCampaigns] = useState<AttendeeEmailCampaign[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<AttendeeEmailCampaignDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [retrying, setRetrying] = useState(false);
   const [recipientQuery, setRecipientQuery] = useState("");
 
   const loadDetail = useCallback(async (id: string) => {
@@ -92,6 +120,52 @@ export function AttendeeEmailTrackingPanel() {
       loadDetail(selectedId);
     }
   }, [selectedId, loadDetail]);
+
+  async function handleRetryFailed() {
+    if (!detail || detail.stats.failed === 0) return;
+
+    const htmlSource = html.trim() || detail.campaign.html?.trim() || "";
+    if (!htmlSource) {
+      onRetryResult?.(
+        null,
+        "Pegá el HTML del email en el editor de arriba antes de reenviar los fallidos."
+      );
+      return;
+    }
+
+    if (
+      !window.confirm(
+        `¿Reenviar a ${detail.stats.failed} contacto(s) fallidos de esta campaña?`
+      )
+    ) {
+      return;
+    }
+
+    setRetrying(true);
+    onRetryResult?.(null, null);
+    try {
+      const result = await retryFailedAttendeeEmails({
+        campaignId: detail.campaign.id,
+        html: htmlSource,
+        subject: subject.trim() || detail.campaign.subject,
+      });
+
+      if (result.errors.length > 0 && result.sent === 0) {
+        onRetryResult?.(null, result.errors.join(" · "));
+        return;
+      }
+
+      onRetryResult?.(
+        `Reenviados ${result.sent} fallido(s)${result.failed ? ` · ${result.failed} siguen fallidos` : ""}.`,
+        null
+      );
+      await refresh();
+    } catch (err) {
+      onRetryResult?.(null, err instanceof Error ? err.message : "Error al reenviar fallidos");
+    } finally {
+      setRetrying(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -142,13 +216,46 @@ export function AttendeeEmailTrackingPanel() {
 
       {detail && (
         <div className="space-y-3 rounded-lg border p-4 bg-slate-50/50 dark:bg-slate-900/40">
-          <p className="text-sm font-semibold">{detail.campaign.subject}</p>
-          <p className="text-xs text-slate-500">
-            {formatNewsletterDate(detail.campaign.createdAt)} · {AUDIENCE_LABELS[detail.campaign.audience]} · {detail.campaign.fromEmail}
-          </p>
-          <p className="text-xs text-slate-500">
-            Enviados: {detail.stats.sent} · Entregados: {detail.stats.delivered} · Rebotados: {detail.stats.bounced}
-          </p>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold">{detail.campaign.subject}</p>
+              <p className="text-xs text-slate-500">
+                {formatNewsletterDate(detail.campaign.createdAt)} · {AUDIENCE_LABELS[detail.campaign.audience]} · {detail.campaign.fromEmail}
+              </p>
+            </div>
+            {detail.stats.failed > 0 && (
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleRetryFailed}
+                disabled={retrying || refreshing}
+                className="gap-2 bg-violet-600 hover:bg-violet-500 text-white"
+              >
+                {retrying ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <RotateCcw className="w-3.5 h-3.5" />
+                )}
+                Reenviar fallidos ({detail.stats.failed})
+              </Button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            <StatBox label="Total" value={detail.stats.total} />
+            <StatBox label="Enviados" value={detail.stats.sent} accent="cyan" />
+            <StatBox label="Entregados" value={detail.stats.delivered} accent="emerald" />
+            <StatBox label="Rebotados" value={detail.stats.bounced} accent="red" />
+            <StatBox label="Fallidos" value={detail.stats.failed} accent="red" />
+            <StatBox label="Pendientes" value={detail.stats.pending} accent="amber" />
+          </div>
+
+          {detail.stats.failed > 0 && !html.trim() && !detail.campaign.html?.trim() && (
+            <p className="text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-lg px-3 py-2">
+              Pegá el mismo HTML del envío original en el editor de arriba para poder reenviar los fallidos.
+            </p>
+          )}
+
           <div className="relative max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
             <Input value={recipientQuery} onChange={(e) => setRecipientQuery(e.target.value)} placeholder="Buscar..." className="pl-9 h-9 text-sm" />

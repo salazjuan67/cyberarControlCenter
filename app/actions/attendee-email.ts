@@ -23,12 +23,150 @@ import type {
   AttendeeEmailCampaignDetail,
   AttendeeEmailHistoryEntry,
   AttendeeEmailPreview,
+  AttendeeEmailRecipient,
   AttendeeEmailStatus,
+  RetryFailedAttendeeEmailInput,
   SendAttendeeEmailInput,
   SendAttendeeEmailResult,
 } from "@/types/asistentes";
 
 const BATCH_SIZE = 100;
+
+async function syncAttendeeCampaignCounts(supabase: ReturnType<typeof createSupabaseServer>, campaignId: string) {
+  const { data: deliveries, error } = await supabase
+    .from("attendee_email_deliveries")
+    .select("status")
+    .eq("campaign_id", campaignId);
+  if (error) throw new Error(error.message);
+
+  const sent = (deliveries ?? []).filter((row) =>
+    ["sent", "delivered", "bounced", "delayed"].includes(String(row.status))
+  ).length;
+  const failed = (deliveries ?? []).filter((row) => row.status === "failed").length;
+
+  const { error: updateError } = await supabase
+    .from("attendee_email_campaigns")
+    .update({ sent_count: sent, failed_count: failed })
+    .eq("id", campaignId);
+  if (updateError) throw new Error(updateError.message);
+}
+
+async function sendAttendeeBatch(params: {
+  supabase: ReturnType<typeof createSupabaseServer>;
+  resend: ReturnType<typeof getResendClient>;
+  from: string;
+  subject: string;
+  html: string;
+  campaignId: string;
+  recipients: AttendeeEmailRecipient[];
+  deliveryIdPrefix: string;
+  mode: "insert" | "update";
+  deliveryIds?: string[];
+}): Promise<{ sent: number; failed: number; errors: string[] }> {
+  const {
+    supabase,
+    resend,
+    from,
+    subject,
+    html,
+    campaignId,
+    recipients,
+    deliveryIdPrefix,
+    mode,
+    deliveryIds,
+  } = params;
+
+  const errors: string[] = [];
+  let sent = 0;
+  let failed = 0;
+
+  for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
+    const chunk = recipients.slice(i, i + BATCH_SIZE);
+    const payload = chunk.map((recipient) => ({
+      from,
+      to: [recipient.email],
+      subject,
+      html,
+      tags: [{ name: "campaign_id", value: campaignId }],
+    }));
+
+    const { data, error } = await resend.batch.send(payload);
+
+    if (error) {
+      failed += chunk.length;
+      errors.push(error.message);
+      const now = new Date().toISOString();
+
+      if (mode === "insert") {
+        const failedRows = chunk.map((recipient, index) => ({
+          id: `${deliveryIdPrefix}${i + index}`,
+          campaign_id: campaignId,
+          resend_email_id: null,
+          attendee_id: recipient.attendeeId,
+          recipient_email: recipient.email,
+          recipient_name: recipient.name,
+          organizacion: recipient.organizacion,
+          status: "failed",
+          failed_at: now,
+          last_event_at: now,
+        }));
+        await supabase.from("attendee_email_deliveries").insert(failedRows);
+      } else {
+        for (let index = 0; index < chunk.length; index++) {
+          const deliveryId = deliveryIds?.[i + index];
+          if (!deliveryId) continue;
+          await supabase
+            .from("attendee_email_deliveries")
+            .update({ failed_at: now, last_event_at: now })
+            .eq("id", deliveryId);
+        }
+      }
+      continue;
+    }
+
+    const emailIds = data?.data ?? [];
+    const now = new Date().toISOString();
+
+    for (let index = 0; index < chunk.length; index++) {
+      const recipient = chunk[index];
+      const resendEmailId = emailIds[index]?.id ?? null;
+      const accepted = Boolean(resendEmailId);
+      if (accepted) sent += 1;
+      else failed += 1;
+
+      const row = {
+        resend_email_id: resendEmailId,
+        status: accepted ? "sent" : "failed",
+        sent_at: accepted ? now : null,
+        failed_at: accepted ? null : now,
+        last_event_at: now,
+      };
+
+      if (mode === "insert") {
+        const { error: insertError } = await supabase.from("attendee_email_deliveries").insert({
+          id: `${deliveryIdPrefix}${i + index}`,
+          campaign_id: campaignId,
+          attendee_id: recipient.attendeeId,
+          recipient_email: recipient.email,
+          recipient_name: recipient.name,
+          organizacion: recipient.organizacion,
+          ...row,
+        });
+        if (insertError) errors.push(insertError.message);
+      } else {
+        const deliveryId = deliveryIds?.[i + index];
+        if (!deliveryId) continue;
+        const { error: updateError } = await supabase
+          .from("attendee_email_deliveries")
+          .update(row)
+          .eq("id", deliveryId);
+        if (updateError) errors.push(updateError.message);
+      }
+    }
+  }
+
+  return { sent, failed, errors };
+}
 
 async function loadAsistentes() {
   const supabase = createSupabaseServer();
@@ -189,9 +327,6 @@ export async function sendAttendeeEmail(
   try {
     const { from } = assertResendReady("attendees");
     const resend = getResendClient();
-    const errors: string[] = [];
-    let sent = 0;
-    let failed = 0;
 
     const { error: campaignError } = await supabase.from("attendee_email_campaigns").insert({
       id: campaignId,
@@ -201,80 +336,136 @@ export async function sendAttendeeEmail(
       total_recipients: recipients.length,
       sent_count: 0,
       failed_count: 0,
+      html,
     });
     if (campaignError) throw new Error(campaignError.message);
 
-    for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
-      const chunk = recipients.slice(i, i + BATCH_SIZE);
-      const payload = chunk.map((recipient) => ({
-        from,
-        to: [recipient.email],
-        subject,
-        html,
-        tags: [{ name: "campaign_id", value: campaignId }],
-      }));
+    const batchResult = await sendAttendeeBatch({
+      supabase,
+      resend,
+      from,
+      subject,
+      html,
+      campaignId,
+      recipients,
+      deliveryIdPrefix: `${campaignId}-d`,
+      mode: "insert",
+    });
 
-      const { data, error } = await resend.batch.send(payload);
+    await syncAttendeeCampaignCounts(supabase, campaignId);
 
-      if (error) {
-        failed += chunk.length;
-        errors.push(error.message);
-        const failedRows = chunk.map((recipient, index) => ({
-          id: `${campaignId}-d${i + index}`,
-          campaign_id: campaignId,
-          resend_email_id: null,
-          attendee_id: recipient.attendeeId,
-          recipient_email: recipient.email,
-          recipient_name: recipient.name,
-          organizacion: recipient.organizacion,
-          status: "failed",
-          failed_at: new Date().toISOString(),
-          last_event_at: new Date().toISOString(),
-        }));
-        await supabase.from("attendee_email_deliveries").insert(failedRows);
-        continue;
-      }
-
-      const emailIds = data?.data ?? [];
-      const deliveryRows = chunk.map((recipient, index) => {
-        const resendEmailId = emailIds[index]?.id ?? null;
-        const accepted = Boolean(resendEmailId);
-        if (accepted) sent += 1;
-        else failed += 1;
-
-        return {
-          id: `${campaignId}-d${i + index}`,
-          campaign_id: campaignId,
-          resend_email_id: resendEmailId,
-          attendee_id: recipient.attendeeId,
-          recipient_email: recipient.email,
-          recipient_name: recipient.name,
-          organizacion: recipient.organizacion,
-          status: accepted ? "sent" : "failed",
-          sent_at: accepted ? new Date().toISOString() : null,
-          failed_at: accepted ? null : new Date().toISOString(),
-          last_event_at: new Date().toISOString(),
-        };
-      });
-
-      const { error: insertError } = await supabase
-        .from("attendee_email_deliveries")
-        .insert(deliveryRows);
-      if (insertError) errors.push(insertError.message);
-    }
-
-    await supabase
-      .from("attendee_email_campaigns")
-      .update({ sent_count: sent, failed_count: failed })
-      .eq("id", campaignId);
-
-    return { ok: sent > 0, sent, failed, errors, campaignId };
+    return {
+      ok: batchResult.sent > 0,
+      sent: batchResult.sent,
+      failed: batchResult.failed,
+      errors: batchResult.errors,
+      campaignId,
+    };
   } catch (err) {
     return {
       ok: false,
       sent: 0,
       failed: recipients.length,
       errors: [err instanceof Error ? err.message : "Error al enviar comunicación"],
+      campaignId,
+    };
+  }
+}
+
+export async function retryFailedAttendeeEmails(
+  input: RetryFailedAttendeeEmailInput
+): Promise<SendAttendeeEmailResult> {
+  await requireAuth();
+
+  const campaignId = input.campaignId.trim();
+  if (!campaignId) {
+    return { ok: false, sent: 0, failed: 0, errors: ["Campaña inválida"] };
+  }
+
+  const supabase = createSupabaseServer();
+
+  const { data: campaignRow, error: campaignError } = await supabase
+    .from("attendee_email_campaigns")
+    .select("*")
+    .eq("id", campaignId)
+    .maybeSingle();
+  if (campaignError) throw new Error(campaignError.message);
+  if (!campaignRow) {
+    return { ok: false, sent: 0, failed: 0, errors: ["Campaña no encontrada"] };
+  }
+
+  const campaign = mapAttendeeCampaign(campaignRow);
+  const subject = (input.subject?.trim() || campaign.subject).trim();
+  const html = normalizeNewsletterHtml((input.html?.trim() || campaign.html || "").trim());
+
+  if (!subject) {
+    return { ok: false, sent: 0, failed: 0, errors: ["El asunto es obligatorio"] };
+  }
+  if (!html) {
+    return {
+      ok: false,
+      sent: 0,
+      failed: 0,
+      errors: ["Pegá el HTML del email arriba para reenviar los fallidos"],
+    };
+  }
+
+  const { data: failedRows, error: deliveriesError } = await supabase
+    .from("attendee_email_deliveries")
+    .select("*")
+    .eq("campaign_id", campaignId)
+    .eq("status", "failed")
+    .order("recipient_email");
+  if (deliveriesError) throw new Error(deliveriesError.message);
+
+  const deliveries = (failedRows ?? []).map(mapAttendeeDelivery);
+  if (deliveries.length === 0) {
+    return { ok: false, sent: 0, failed: 0, errors: ["No hay envíos fallidos en esta campaña"] };
+  }
+
+  try {
+    const { from } = assertResendReady("attendees");
+    const resend = getResendClient();
+
+    const recipients: AttendeeEmailRecipient[] = deliveries.map((row) => ({
+      email: row.recipientEmail,
+      name: row.recipientName,
+      organizacion: row.organizacion,
+      attendeeId: row.attendeeId,
+    }));
+
+    const batchResult = await sendAttendeeBatch({
+      supabase,
+      resend,
+      from,
+      subject,
+      html,
+      campaignId,
+      recipients,
+      deliveryIdPrefix: `${campaignId}-retry-`,
+      mode: "update",
+      deliveryIds: deliveries.map((row) => row.id),
+    });
+
+    if (!campaign.html && html) {
+      await supabase.from("attendee_email_campaigns").update({ html }).eq("id", campaignId);
+    }
+
+    await syncAttendeeCampaignCounts(supabase, campaignId);
+
+    return {
+      ok: batchResult.sent > 0,
+      sent: batchResult.sent,
+      failed: batchResult.failed,
+      errors: batchResult.errors,
+      campaignId,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      sent: 0,
+      failed: deliveries.length,
+      errors: [err instanceof Error ? err.message : "Error al reenviar fallidos"],
       campaignId,
     };
   }

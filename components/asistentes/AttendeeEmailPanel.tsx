@@ -222,7 +222,14 @@ export function AttendeeEmailPanel() {
         </div>
       </div>
 
-      <AttendeeEmailTrackingPanel />
+      <AttendeeEmailTrackingPanel
+        html={html}
+        subject={subject}
+        onRetryResult={(retryMessage, retryError) => {
+          if (retryMessage) setMessage(retryMessage);
+          if (retryError) setError(retryError);
+        }}
+      />
     </div>
   );
 }
