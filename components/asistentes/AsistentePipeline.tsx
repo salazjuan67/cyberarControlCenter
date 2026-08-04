@@ -5,6 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Mail, Pencil } from "lucide-react";
+import {
+  registrationStatusClass,
+  registrationStatusLabel,
+} from "@/lib/asistentes/registration-display";
 
 const STAGES: AsistenteEstado[] = [
   "Lead",
@@ -131,6 +135,17 @@ export function AsistentePipeline({
                   >
                     {a.categoria}
                   </Badge>
+                  {a.registrationStatus && (
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "text-[10px] mt-1.5 ml-1 px-1.5 py-0",
+                        registrationStatusClass(a.registrationStatus)
+                      )}
+                    >
+                      {registrationStatusLabel(a.registrationStatus)}
+                    </Badge>
+                  )}
                   {a.email && (
                     <p className="text-slate-400 dark:text-slate-500 text-[10px] mt-1 truncate flex items-center gap-1">
                       <Mail className="w-2.5 h-2.5 shrink-0" />

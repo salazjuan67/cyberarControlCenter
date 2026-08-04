@@ -32,6 +32,8 @@ import {
 } from "@/app/actions/data";
 import { syncFinanceSummary } from "@/app/actions/finance-summary";
 import type { FinanceSummary } from "@/types/finance-summary";
+import { syncRegistrationAttendees } from "@/app/actions/registration-sync";
+import type { RegistrationSyncResult } from "@/types/registration-sync";
 
 interface AppState {
   isHydrated: boolean;
@@ -76,6 +78,7 @@ interface AppState {
     asistentes: AsistentePotencial[],
     options?: { replaceDuplicates?: boolean }
   ) => Promise<ImportAsistentesResult>;
+  syncAttendeeRegistrations: () => Promise<RegistrationSyncResult>;
 
   importSponsors: (
     sponsors: Sponsor[],
@@ -273,6 +276,24 @@ export const useStore = create<AppState>()((set, get) => ({
       set({
         asistentesPotenciales: previous,
         saveError: err instanceof Error ? err.message : "Error al importar asistentes",
+      });
+      throw err;
+    }
+  },
+
+  syncAttendeeRegistrations: async () => {
+    const previous = get().asistentesPotenciales;
+    set({ saveError: null });
+    try {
+      const result = await syncRegistrationAttendees();
+      const refreshed = await fetchAllData();
+      set({ asistentesPotenciales: refreshed.asistentesPotenciales });
+      return result;
+    } catch (err) {
+      set({
+        asistentesPotenciales: previous,
+        saveError:
+          err instanceof Error ? err.message : "Error al sincronizar inscripciones",
       });
       throw err;
     }

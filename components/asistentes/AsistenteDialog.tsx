@@ -9,6 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import type { AsistentePotencial, AsistenteCategoria, AsistenteEstado, AsistenteModalidad } from "@/types/asistentes";
 import { AsistenteEmailHistory } from "@/components/asistentes/AsistenteEmailHistory";
 import { useDialogForm } from "@/lib/useDialogForm";
+import {
+  paymentStatusLabel,
+  registrationStatusClass,
+  registrationStatusLabel,
+} from "@/lib/asistentes/registration-display";
+import { Badge } from "@/components/ui/badge";
+import { formatNewsletterDate } from "@/lib/newsletter/display";
+import { cn } from "@/lib/utils";
 
 const inputCls = "bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-200";
 const selectContentCls = "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700";
@@ -48,6 +56,30 @@ export function AsistenteDialog({ open, onOpenChange, initial, defaultValues, on
           </DialogTitle>
         </DialogHeader>
         <div className="grid grid-cols-2 gap-4 py-2">
+          {initial?.registrationStatus && (
+            <div className="col-span-2 rounded-lg border border-cyan-200 dark:border-cyan-500/20 bg-cyan-50/60 dark:bg-cyan-500/5 p-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
+                  Sistema de inscripciones
+                </span>
+                <Badge
+                  variant="outline"
+                  className={cn("text-xs", registrationStatusClass(initial.registrationStatus))}
+                >
+                  {registrationStatusLabel(initial.registrationStatus)}
+                </Badge>
+                <span className="text-xs text-slate-500">
+                  {paymentStatusLabel(initial.paymentStatus)}
+                </span>
+              </div>
+              <p className="mt-1 text-[10px] text-slate-400">
+                {initial.registeredAt
+                  ? `Registrado: ${formatNewsletterDate(initial.registeredAt)}`
+                  : ""}
+                {initial.registrationId ? ` · ID: ${initial.registrationId}` : ""}
+              </p>
+            </div>
+          )}
           <div>
             <label className="text-xs text-slate-500 mb-1.5 block">Nombre *</label>
             <Input value={form.nombre} onChange={(e) => set("nombre", e.target.value)} className={inputCls} />

@@ -198,6 +198,11 @@ export function mapAsistentePotencial(row: Record<string, unknown>): AsistentePo
     ultimoContacto: (row.ultimo_contacto as string) ?? "",
     proximaAccion: (row.proxima_accion as string) ?? "",
     notas: (row.notas as string) ?? "",
+    registrationId: (row.registration_id as string) ?? "",
+    registrationStatus: (row.registration_status as string) ?? "",
+    paymentStatus: (row.payment_status as string) ?? "",
+    registeredAt: (row.registered_at as string) ?? "",
+    registrationSyncedAt: (row.registration_synced_at as string) ?? "",
   };
 }
 
@@ -221,5 +226,10 @@ export function asistentePotencialToRow(a: AsistentePotencial) {
     ultimo_contacto: a.ultimoContacto || null,
     proxima_accion: a.proximaAccion,
     notas: a.notas,
+    registration_id: a.registrationId || null,
+    registration_status: a.registrationStatus || "",
+    payment_status: a.paymentStatus || "",
+    registered_at: a.registeredAt || null,
+    registration_synced_at: a.registrationSyncedAt || null,
   };
 }

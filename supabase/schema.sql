@@ -131,6 +131,11 @@ CREATE TABLE IF NOT EXISTS asistentes_potenciales (
   ultimo_contacto DATE,
   proxima_accion TEXT DEFAULT '',
   notas TEXT DEFAULT '',
+  registration_id TEXT,
+  registration_status TEXT DEFAULT '',
+  payment_status TEXT DEFAULT '',
+  registered_at TIMESTAMPTZ,
+  registration_synced_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -142,6 +147,7 @@ CREATE TABLE IF NOT EXISTS attendee_email_campaigns (
   total_recipients INT NOT NULL DEFAULT 0,
   sent_count INT NOT NULL DEFAULT 0,
   failed_count INT NOT NULL DEFAULT 0,
+  html TEXT DEFAULT '',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -158,7 +164,20 @@ CREATE TABLE IF NOT EXISTS attendee_email_deliveries (
   delivered_at TIMESTAMPTZ,
   bounced_at TIMESTAMPTZ,
   failed_at TIMESTAMPTZ,
+  opened_at TIMESTAMPTZ,
   bounce_reason TEXT DEFAULT '',
   last_event_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS attendee_registration_syncs (
+  id TEXT PRIMARY KEY,
+  generated_at TIMESTAMPTZ,
+  synced_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  fetched_count INT NOT NULL DEFAULT 0,
+  created_count INT NOT NULL DEFAULT 0,
+  updated_count INT NOT NULL DEFAULT 0,
+  unchanged_count INT NOT NULL DEFAULT 0,
+  error_count INT NOT NULL DEFAULT 0,
+  errors JSONB NOT NULL DEFAULT '[]'::jsonb
 );

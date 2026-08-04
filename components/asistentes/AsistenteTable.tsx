@@ -6,6 +6,11 @@ import { formatDate } from "@/lib/formatters";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import {
+  paymentStatusLabel,
+  registrationStatusClass,
+  registrationStatusLabel,
+} from "@/lib/asistentes/registration-display";
 
 const ESTADO_COLORS: Record<string, string> = {
   Inscripto: "border-emerald-300 dark:border-emerald-500/40 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
@@ -45,6 +50,7 @@ export function AsistenteTable({ asistentes, onEdit, onDelete }: AsistenteTableP
               <th className="text-left px-4 py-3 text-xs text-slate-400 font-medium uppercase">Categoría</th>
               <th className="text-left px-4 py-3 text-xs text-slate-400 font-medium uppercase">Modalidad</th>
               <th className="text-left px-4 py-3 text-xs text-slate-400 font-medium uppercase">Estado</th>
+              <th className="text-left px-4 py-3 text-xs text-slate-400 font-medium uppercase">Inscripción</th>
               <th className="text-left px-4 py-3 text-xs text-slate-400 font-medium uppercase">Origen</th>
               <th className="text-left px-4 py-3 text-xs text-slate-400 font-medium uppercase">Último contacto</th>
               <th className="px-4 py-3"></th>
@@ -69,6 +75,23 @@ export function AsistenteTable({ asistentes, onEdit, onDelete }: AsistenteTableP
                   <Badge variant="outline" className={cn("text-xs", ESTADO_COLORS[a.estado])}>
                     {a.estado}
                   </Badge>
+                </td>
+                <td className="px-4 py-3">
+                  {a.registrationStatus ? (
+                    <div className="space-y-1">
+                      <Badge
+                        variant="outline"
+                        className={cn("text-xs", registrationStatusClass(a.registrationStatus))}
+                      >
+                        {registrationStatusLabel(a.registrationStatus)}
+                      </Badge>
+                      <p className="text-[10px] text-slate-400">
+                        {paymentStatusLabel(a.paymentStatus)}
+                      </p>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-slate-400">—</span>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-xs text-slate-500">{a.origen || "—"}</td>
                 <td className="px-4 py-3 text-xs text-slate-500">{formatDate(a.ultimoContacto)}</td>

@@ -25,6 +25,9 @@ const audienceLabels: Record<AttendeeEmailAudience, string> = {
   all: "Todos con email",
   with_email: "Todos con email",
   interested: "En pipeline (Lead → Interesado)",
+  registered_confirmed: "Inscripción confirmada",
+  registered_pending: "Inscripción pendiente",
+  registered_rejected: "Inscripción rechazada",
 };
 
 export function AttendeeEmailPanel() {

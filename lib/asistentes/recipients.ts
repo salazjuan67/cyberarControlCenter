@@ -17,6 +17,12 @@ export function resolveAttendeeRecipients(
     filtered = asistentes.filter((a) =>
       ["Lead", "Contactado", "Invitación enviada", "Interesado"].includes(a.estado)
     );
+  } else if (audience === "registered_confirmed") {
+    filtered = asistentes.filter((a) => a.registrationStatus === "confirmed");
+  } else if (audience === "registered_pending") {
+    filtered = asistentes.filter((a) => a.registrationStatus === "pending");
+  } else if (audience === "registered_rejected") {
+    filtered = asistentes.filter((a) => a.registrationStatus === "rejected");
   }
 
   const seen = new Set<string>();

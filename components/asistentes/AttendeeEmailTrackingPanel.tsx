@@ -21,6 +21,9 @@ const AUDIENCE_LABELS: Record<string, string> = {
   all: "Todos con email",
   with_email: "Todos con email",
   interested: "En pipeline",
+  registered_confirmed: "Inscripción confirmada",
+  registered_pending: "Inscripción pendiente",
+  registered_rejected: "Inscripción rechazada",
 };
 
 function RecipientTable({

@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Plus, Search, UserPlus, Users, Mail, Upload } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Loader2, Plus, Search, UserPlus, Users, Mail, RefreshCw, Upload } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,8 @@ import {
   type AsistenteFilters,
 } from "@/lib/asistentes/filters";
 import type { AsistentePotencial, AsistenteEstado } from "@/types/asistentes";
+import { getRegistrationSyncStatus } from "@/app/actions/registration-sync";
+import type { RegistrationSyncStatus } from "@/types/registration-sync";
 
 const EMPTY: Omit<AsistentePotencial, "id"> = {
   nombre: "",
@@ -41,12 +43,23 @@ const EMPTY: Omit<AsistentePotencial, "id"> = {
 };
 
 export default function AsistentesPotencialesPage() {
-  const { asistentesPotenciales, addAsistentePotencial, updateAsistentePotencial, deleteAsistentePotencial } = useStore();
+  const {
+    asistentesPotenciales,
+    addAsistentePotencial,
+    updateAsistentePotencial,
+    deleteAsistentePotencial,
+    syncAttendeeRegistrations,
+  } = useStore();
   const [filters, setFilters] = useState<AsistenteFilters>(DEFAULT_ASISTENTE_FILTERS);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [editing, setEditing] = useState<AsistentePotencial | null>(null);
   const [view, setView] = useState<"lista" | "pipeline" | "comunicaciones">("lista");
+  const [syncing, setSyncing] = useState(false);
+  const [syncConfigured, setSyncConfigured] = useState(true);
+  const [lastSync, setLastSync] = useState<RegistrationSyncStatus | null>(null);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   const filtered = useMemo(() => filterAsistentes(asistentesPotenciales, filters), [asistentesPotenciales, filters]);
   const conEmail = asistentesPotenciales.filter((a) => a.email.trim()).length;
@@ -54,6 +67,33 @@ export default function AsistentesPotencialesPage() {
   const enPipeline = asistentesPotenciales.filter((a) =>
     ["Lead", "Contactado", "Invitación enviada", "Interesado"].includes(a.estado)
   ).length;
+
+  useEffect(() => {
+    getRegistrationSyncStatus()
+      .then((status) => {
+        setSyncConfigured(status.configured);
+        setLastSync(status.lastSync);
+      })
+      .catch(() => setSyncConfigured(false));
+  }, []);
+
+  async function handleRegistrationSync() {
+    setSyncing(true);
+    setSyncMessage(null);
+    setSyncError(null);
+    try {
+      const result = await syncAttendeeRegistrations();
+      setLastSync({ id: `local-${Date.now()}`, ...result });
+      setSyncMessage(
+        `Sincronización completa: ${result.created} nuevos · ${result.updated} actualizados · ${result.unchanged} sin cambios`
+      );
+      if (result.errors.length > 0) setSyncError(result.errors.join(" · "));
+    } catch (err) {
+      setSyncError(err instanceof Error ? err.message : "No se pudo sincronizar");
+    } finally {
+      setSyncing(false);
+    }
+  }
 
   async function handleSave(data: Omit<AsistentePotencial, "id">) {
     if (editing) await updateAsistentePotencial(editing.id, data);
@@ -97,6 +137,19 @@ export default function AsistentesPotencialesPage() {
               <KPICard title="Inscriptos" value={String(inscriptos)} icon={UserPlus} accent="emerald" />
             </div>
 
+            {(syncMessage || syncError || lastSync) && (
+              <div className="rounded-xl border border-cyan-200 dark:border-cyan-500/20 bg-cyan-50/60 dark:bg-cyan-500/5 px-4 py-3 text-xs">
+                {syncMessage && <p className="text-emerald-700 dark:text-emerald-300">{syncMessage}</p>}
+                {syncError && <p className="text-red-700 dark:text-red-300">{syncError}</p>}
+                {!syncMessage && lastSync && (
+                  <p className="text-slate-600 dark:text-slate-400">
+                    Última sincronización: {new Date(lastSync.syncedAt).toLocaleString("es-AR")} ·{" "}
+                    {lastSync.created} nuevos · {lastSync.updated} actualizados
+                  </p>
+                )}
+              </div>
+            )}
+
             <div className="flex flex-wrap items-center gap-2">
               <div className="relative flex-1 min-w-40">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
@@ -115,6 +168,40 @@ export default function AsistentesPotencialesPage() {
                   ))}
                 </SelectContent>
               </Select>
+              <Select
+                value={filters.registrationStatus}
+                onValueChange={(v) =>
+                  v &&
+                  setFilters((p) => ({
+                    ...p,
+                    registrationStatus: v as AsistenteFilters["registrationStatus"],
+                  }))
+                }
+              >
+                <SelectTrigger className={`w-44 ${selectCls}`}><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Todos">Todas las inscripciones</SelectItem>
+                  <SelectItem value="confirmed">Inscripción confirmada</SelectItem>
+                  <SelectItem value="pending">Inscripción pendiente</SelectItem>
+                  <SelectItem value="rejected">Inscripción rechazada</SelectItem>
+                  <SelectItem value="none">Sin inscripción</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                onClick={handleRegistrationSync}
+                disabled={syncing || !syncConfigured}
+                size="sm"
+                variant="outline"
+                className="h-8 gap-1.5 border-cyan-300 dark:border-cyan-700"
+                title={!syncConfigured ? "FINANCE_API_KEY no configurada" : undefined}
+              >
+                {syncing ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-3.5 h-3.5" />
+                )}
+                {syncing ? "Sincronizando..." : "Sincronizar inscripciones"}
+              </Button>
               <Button onClick={() => setImportOpen(true)} size="sm" variant="outline" className="h-8 gap-1.5 border-slate-300 dark:border-slate-700">
                 <Upload className="w-3.5 h-3.5" />
                 Importar Excel

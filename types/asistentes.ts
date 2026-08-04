@@ -35,9 +35,20 @@ export interface AsistentePotencial {
   ultimoContacto: string;
   proximaAccion: string;
   notas: string;
+  registrationId?: string;
+  registrationStatus?: string;
+  paymentStatus?: string;
+  registeredAt?: string;
+  registrationSyncedAt?: string;
 }
 
-export type AttendeeEmailAudience = "all" | "with_email" | "interested";
+export type AttendeeEmailAudience =
+  | "all"
+  | "with_email"
+  | "interested"
+  | "registered_confirmed"
+  | "registered_pending"
+  | "registered_rejected";
 
 export type AttendeeDeliveryStatus =
   | "pending"
