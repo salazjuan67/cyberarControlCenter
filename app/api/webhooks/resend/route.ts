@@ -93,8 +93,6 @@ export async function POST(request: Request) {
     return Response.json({ ok: true, ignored: true });
   }
 
-  const supabase = createSupabaseServer();
-
   for (const table of ["newsletter_deliveries", "attendee_email_deliveries"] as const) {
     const { data: existing, error: fetchError } = await supabase
       .from(table)
