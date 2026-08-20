@@ -11,10 +11,24 @@ export function resolveSponsorRecipients(
   sponsors: Sponsor[],
   audience: NewsletterAudience
 ): { recipients: NewsletterRecipient[]; skipped: number } {
-  const filtered =
-    audience === "confirmed_sponsors"
-      ? sponsors.filter((s) => s.estado === "Confirmado")
-      : sponsors;
+  const filtered = sponsors.filter((sponsor) => {
+    switch (audience) {
+      case "bairescode_sponsors":
+        return sponsor.origen?.trim().toLowerCase() === "bairescode";
+      case "high_priority_sponsors":
+        return sponsor.prioridad.trim().toLowerCase().includes("alta");
+      case "lead_sponsors":
+        return sponsor.estado === "Lead";
+      case "proposal_sponsors":
+        return sponsor.estado === "Propuesta enviada";
+      case "negotiating_sponsors":
+        return sponsor.estado === "En negociación";
+      case "confirmed_sponsors":
+        return sponsor.estado === "Confirmado";
+      default:
+        return true;
+    }
+  });
 
   const seen = new Set<string>();
   const recipients: NewsletterRecipient[] = [];

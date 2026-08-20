@@ -135,7 +135,7 @@ export function AsistenteDialog({ open, onOpenChange, initial, defaultValues, on
             <Select value={form.estado} onValueChange={(v) => v && set("estado", v as AsistenteEstado)}>
               <SelectTrigger className={inputCls}><SelectValue /></SelectTrigger>
               <SelectContent className={selectContentCls}>
-                {["Lead","Contactado","Invitación enviada","Interesado","Inscripto","No interesado"].map((e) => (
+                {["Lead","Invitación enviada","Interesado","Inscripto","No interesado"].map((e) => (
                   <SelectItem key={e} value={e} className={selectItemCls}>{e}</SelectItem>
                 ))}
               </SelectContent>

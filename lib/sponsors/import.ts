@@ -16,7 +16,6 @@ const CATEGORIAS: SponsorCategoria[] = [
 
 const ESTADOS: SponsorEstado[] = [
   "Lead",
-  "Contactado",
   "Propuesta enviada",
   "En negociación",
   "Confirmado",
@@ -110,6 +109,10 @@ const GENERIC_ALIASES: Record<string, ImportField> = {
   "pais / alcance": "region",
   "equipo geografico": "region",
 
+  origen: "origen",
+  fuente: "origen",
+  "origen de la base": "origen",
+
   "ultimo contacto": "ultimoContacto",
   "último contacto": "ultimoContacto",
   ultimo_contacto: "ultimoContacto",
@@ -190,7 +193,7 @@ function normalizeEstado(value: string): SponsorEstado {
   if (normalized.includes("confirm")) return "Confirmado";
   if (normalized.includes("negoci")) return "En negociación";
   if (normalized.includes("propuesta")) return "Propuesta enviada";
-  if (normalized.includes("contact")) return "Contactado";
+  if (normalized.includes("contact")) return "Propuesta enviada";
   if (normalized.includes("perd")) return "Perdido";
   return "Lead";
 }

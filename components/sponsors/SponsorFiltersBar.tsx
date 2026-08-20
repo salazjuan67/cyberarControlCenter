@@ -9,6 +9,7 @@ import {
   countActiveFilters,
   DEFAULT_SPONSOR_FILTERS,
   getUniquePrioridades,
+  getUniqueOrigenes,
   getUniqueRegiones,
   getUniqueResponsables,
   getUniqueSegmentos,
@@ -37,6 +38,7 @@ export function SponsorFiltersBar({
   const segmentos = getUniqueSegmentos(sponsors);
   const prioridades = getUniquePrioridades(sponsors);
   const regiones = getUniqueRegiones(sponsors);
+  const origenes = getUniqueOrigenes(sponsors);
   const responsables = getUniqueResponsables(sponsors);
   const activeCount = countActiveFilters(filters);
 
@@ -84,6 +86,22 @@ export function SponsorFiltersBar({
             {regiones.map((r) => (
               <SelectItem key={r} value={r} className={selectItemCls}>
                 {r}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={filters.origen} onValueChange={(v) => v && set("origen", v)}>
+          <SelectTrigger className={`w-40 ${selectCls}`}>
+            <SelectValue placeholder="Origen" />
+          </SelectTrigger>
+          <SelectContent className={selectContentCls}>
+            <SelectItem value="Todos" className={selectItemCls}>
+              Todos los orígenes
+            </SelectItem>
+            {origenes.map((origen) => (
+              <SelectItem key={origen} value={origen} className={selectItemCls}>
+                {origen}
               </SelectItem>
             ))}
           </SelectContent>

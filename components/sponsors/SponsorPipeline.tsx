@@ -6,8 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useLayout } from "@/components/providers/LayoutContext";
 
-const STAGES: SponsorEstado[] = ["Lead","Contactado","Propuesta enviada","En negociación","Confirmado","Perdido"];
+const STAGES: SponsorEstado[] = ["Lead","Propuesta enviada","En negociación","Confirmado","Perdido"];
 
 const STAGE_STYLES: Record<SponsorEstado, { border: string; header: string; empty: string }> = {
   Lead:               { border: "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40",        header: "text-slate-500 dark:text-slate-400",       empty: "border-slate-200 dark:border-slate-700/50" },
@@ -27,20 +28,26 @@ const CAT_COLORS: Record<string, string> = {
 };
 
 export function SponsorPipeline({ sponsors, onEdit }: { sponsors: Sponsor[]; onEdit: (s: Sponsor) => void }) {
+  const { sidebarCollapsed } = useLayout();
   const byStage = STAGES.reduce<Record<SponsorEstado, Sponsor[]>>((acc, stage) => {
     acc[stage] = sponsors.filter((s) => s.estado === stage);
     return acc;
   }, {} as Record<SponsorEstado, Sponsor[]>);
 
   return (
-    <div className="flex gap-3 overflow-x-auto pb-2">
+    <div className="overflow-x-auto pb-3">
+      <div className="flex gap-3 min-w-full w-max">
       {STAGES.map((stage) => {
         const items = byStage[stage];
         const totalsByMoneda = sumByMoneda(items, (s) => s.montoConfirmado > 0 ? s.montoConfirmado : s.montoEstimado);
         const totalLabel = formatTotalsByMoneda(totalsByMoneda);
         const st = STAGE_STYLES[stage];
         return (
-          <div key={stage} className="flex-shrink-0 w-56">
+          <div
+            key={stage}
+            className="flex-1 transition-[min-width] duration-200"
+            style={{ minWidth: sidebarCollapsed ? 200 : 224 }}
+          >
             <div className="flex items-center justify-between mb-2 px-1">
               <span className={cn("text-xs font-semibold uppercase tracking-wider", st.header)}>{stage}</span>
               <span className="text-xs text-slate-400 dark:text-slate-500">{items.length}</span>
@@ -75,6 +82,7 @@ export function SponsorPipeline({ sponsors, onEdit }: { sponsors: Sponsor[]; onE
           </div>
         );
       })}
+      </div>
     </div>
   );
 }

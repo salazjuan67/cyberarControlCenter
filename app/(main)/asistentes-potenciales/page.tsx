@@ -127,7 +127,27 @@ export default function AsistentesPotencialesPage() {
         }
       />
 
-      <div className="p-4 md:p-6 space-y-4 md:space-y-6 max-w-6xl">
+      <div
+        className={`p-4 md:p-6 space-y-4 md:space-y-6 w-full ${
+          view === "comunicaciones" ? "max-w-6xl" : "max-w-none"
+        }`}
+      >
+        <div className="sm:hidden grid grid-cols-3 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
+          {(["lista", "pipeline", "comunicaciones"] as const).map((v) => (
+            <button
+              key={v}
+              onClick={() => setView(v)}
+              className={`min-w-0 px-2 py-2 text-[11px] transition-colors ${
+                view === v
+                  ? "bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white font-medium"
+                  : "bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400"
+              }`}
+            >
+              {v === "lista" ? "Lista" : v === "pipeline" ? "Pipeline" : "Comunicaciones"}
+            </button>
+          ))}
+        </div>
+
         {view !== "comunicaciones" && (
           <>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -163,7 +183,7 @@ export default function AsistentesPotencialesPage() {
               <Select value={filters.estado} onValueChange={(v) => v && setFilters((p) => ({ ...p, estado: v as AsistenteEstado | "Todos" }))}>
                 <SelectTrigger className={`w-44 ${selectCls}`}><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {["Todos","Lead","Contactado","Invitación enviada","Interesado","Inscripto","No interesado"].map((e) => (
+                  {["Todos","Lead","Invitación enviada","Interesado","Inscripto","No interesado"].map((e) => (
                     <SelectItem key={e} value={e}>{e}</SelectItem>
                   ))}
                 </SelectContent>

@@ -43,5 +43,10 @@ export function DeliveryStatusBadge({ status }: { status: NewsletterDeliveryStat
 
 export const AUDIENCE_LABELS: Record<string, string> = {
   all_sponsors: "Todos los sponsors",
+  bairescode_sponsors: "Base BairesCode",
+  high_priority_sponsors: "Prioridad alta",
+  lead_sponsors: "Leads",
+  proposal_sponsors: "Propuesta enviada",
+  negotiating_sponsors: "En negociación",
   confirmed_sponsors: "Solo confirmados",
 };

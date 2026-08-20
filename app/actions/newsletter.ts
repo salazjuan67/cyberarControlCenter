@@ -328,6 +328,7 @@ export async function sendNewsletter(
     const { from } = assertResendReady();
     const resend = getResendClient();
     const errors: string[] = [];
+    const acceptedSponsorIds: string[] = [];
     let sent = 0;
     let failed = 0;
 
@@ -380,7 +381,10 @@ export async function sendNewsletter(
       const deliveryRows = chunk.map((recipient, index) => {
         const resendEmailId = emailIds[index]?.id ?? null;
         const accepted = Boolean(resendEmailId);
-        if (accepted) sent += 1;
+        if (accepted) {
+          sent += 1;
+          acceptedSponsorIds.push(recipient.sponsorId);
+        }
         else failed += 1;
 
         return {
@@ -412,12 +416,25 @@ export async function sendNewsletter(
       .update({ sent_count: sent, failed_count: failed })
       .eq("id", campaignId);
 
+    if (acceptedSponsorIds.length > 0) {
+      await supabase
+        .from("sponsors")
+        .update({
+          estado: "Propuesta enviada",
+          ultimo_contacto: new Date().toISOString().slice(0, 10),
+          proxima_accion: "Dar seguimiento a la propuesta enviada",
+        })
+        .in("id", acceptedSponsorIds)
+        .eq("estado", "Lead");
+    }
+
     return {
       ok: sent > 0 && failed === 0,
       sent,
       failed,
       errors,
       campaignId,
+      acceptedSponsorIds,
     };
   } catch (err) {
     return {

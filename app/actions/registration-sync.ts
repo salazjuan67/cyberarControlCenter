@@ -37,6 +37,21 @@ function mapSyncRun(row: SyncRunRow): RegistrationSyncStatus {
   };
 }
 
+async function loadAllExistingAttendees(supabase: ReturnType<typeof createSupabaseServer>) {
+  const rows: Record<string, unknown>[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await supabase
+      .from("asistentes_potenciales")
+      .select("*")
+      .order("created_at")
+      .order("id")
+      .range(from, from + 999);
+    if (error) throw new Error(error.message);
+    rows.push(...(data ?? []));
+    if (!data || data.length < 1000) return rows;
+  }
+}
+
 export async function getRegistrationSyncStatus(): Promise<{
   configured: boolean;
   lastSync: RegistrationSyncStatus | null;
@@ -63,12 +78,8 @@ export async function syncRegistrationAttendees(): Promise<RegistrationSyncResul
   const errors: string[] = [];
 
   const { generatedAt, registrations } = await fetchAllRegistrations();
-  const { data: existingRows, error: existingError } = await supabase
-    .from("asistentes_potenciales")
-    .select("*");
-  if (existingError) throw new Error(existingError.message);
-
-  const existing = (existingRows ?? []).map(mapAsistentePotencial);
+  const existingRows = await loadAllExistingAttendees(supabase);
+  const existing = existingRows.map(mapAsistentePotencial);
   const byEmail = new Map<string, AsistentePotencial>();
   const byRegistrationId = new Map<string, AsistentePotencial>();
   for (const attendee of existing) {

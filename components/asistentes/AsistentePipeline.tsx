@@ -9,10 +9,10 @@ import {
   registrationStatusClass,
   registrationStatusLabel,
 } from "@/lib/asistentes/registration-display";
+import { useLayout } from "@/components/providers/LayoutContext";
 
 const STAGES: AsistenteEstado[] = [
   "Lead",
-  "Contactado",
   "Invitación enviada",
   "Interesado",
   "Inscripto",
@@ -75,13 +75,15 @@ export function AsistentePipeline({
   asistentes: AsistentePotencial[];
   onEdit: (a: AsistentePotencial) => void;
 }) {
+  const { sidebarCollapsed } = useLayout();
   const byStage = STAGES.reduce<Record<AsistenteEstado, AsistentePotencial[]>>((acc, stage) => {
     acc[stage] = asistentes.filter((a) => a.estado === stage);
     return acc;
   }, {} as Record<AsistenteEstado, AsistentePotencial[]>);
 
   return (
-    <div className="flex gap-3 overflow-x-auto pb-2">
+    <div className="overflow-x-auto pb-3">
+      <div className="flex gap-3 min-w-full w-max">
       {STAGES.map((stage) => {
         const items = byStage[stage];
         const avgProb =
@@ -91,7 +93,11 @@ export function AsistentePipeline({
         const st = STAGE_STYLES[stage];
 
         return (
-          <div key={stage} className="flex-shrink-0 w-56">
+          <div
+            key={stage}
+            className="flex-1 transition-[min-width] duration-200"
+            style={{ minWidth: sidebarCollapsed ? 200 : 224 }}
+          >
             <div className="flex items-center justify-between mb-2 px-1">
               <span className={cn("text-xs font-semibold uppercase tracking-wider leading-tight", st.header)}>
                 {stage}
@@ -171,6 +177,7 @@ export function AsistentePipeline({
           </div>
         );
       })}
+      </div>
     </div>
   );
 }

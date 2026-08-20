@@ -16,6 +16,7 @@ export interface SponsorFilters {
   segmento: string;
   prioridad: string;
   region: string;
+  origen: string;
   responsable: string;
   moneda: Moneda | "Todas";
   probabilidad: ProbabilidadRango;
@@ -29,6 +30,7 @@ export const DEFAULT_SPONSOR_FILTERS: SponsorFilters = {
   segmento: "Todos",
   prioridad: "Todos",
   region: "Todos",
+  origen: "Todos",
   responsable: "Todos",
   moneda: "Todas",
   probabilidad: "Todos",
@@ -55,6 +57,7 @@ export function filterSponsors(sponsors: Sponsor[], filters: SponsorFilters): Sp
         s.segmento,
         s.prioridad,
         s.region,
+        s.origen,
         s.notas,
         s.proximaAccion,
       ]
@@ -68,6 +71,7 @@ export function filterSponsors(sponsors: Sponsor[], filters: SponsorFilters): Sp
     if (filters.segmento !== "Todos" && s.segmento !== filters.segmento) return false;
     if (filters.prioridad !== "Todos" && s.prioridad !== filters.prioridad) return false;
     if (filters.region !== "Todos" && s.region !== filters.region) return false;
+    if (filters.origen !== "Todos" && (s.origen ?? "") !== filters.origen) return false;
     if (filters.responsable !== "Todos" && s.responsable !== filters.responsable) return false;
     if (filters.moneda !== "Todas" && s.moneda !== filters.moneda) return false;
     if (!matchesProbabilidad(s.probabilidad, filters.probabilidad)) return false;
@@ -97,6 +101,10 @@ export function getUniqueRegiones(sponsors: Sponsor[]): string[] {
   return uniqueSorted(sponsors.map((s) => s.region));
 }
 
+export function getUniqueOrigenes(sponsors: Sponsor[]): string[] {
+  return uniqueSorted(sponsors.map((s) => s.origen ?? ""));
+}
+
 export function getUniqueResponsables(sponsors: Sponsor[]): string[] {
   return uniqueSorted(sponsors.map((s) => s.responsable));
 }
@@ -109,6 +117,7 @@ export function countActiveFilters(filters: SponsorFilters): number {
   if (filters.segmento !== "Todos") count += 1;
   if (filters.prioridad !== "Todos") count += 1;
   if (filters.region !== "Todos") count += 1;
+  if (filters.origen !== "Todos") count += 1;
   if (filters.responsable !== "Todos") count += 1;
   if (filters.moneda !== "Todas") count += 1;
   if (filters.probabilidad !== "Todos") count += 1;

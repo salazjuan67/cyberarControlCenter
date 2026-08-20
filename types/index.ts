@@ -43,6 +43,7 @@ export interface Sponsor {
   segmento: string;
   prioridad: string;
   region: string;
+  origen?: string;
   ultimoContacto: string;
   proximaAccion: string;
   notas: string;

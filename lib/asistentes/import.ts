@@ -14,7 +14,6 @@ const CATEGORIAS: AsistenteCategoria[] = [
 
 const ESTADOS: AsistenteEstado[] = [
   "Lead",
-  "Contactado",
   "Invitación enviada",
   "Interesado",
   "Inscripto",
@@ -108,7 +107,7 @@ function normalizeEstado(value: string): AsistenteEstado {
   if (n.includes("inscript")) return "Inscripto";
   if (n.includes("interes")) return "Interesado";
   if (n.includes("invit")) return "Invitación enviada";
-  if (n.includes("contact")) return "Contactado";
+  if (n.includes("contact")) return "Invitación enviada";
   if (n.includes("no interes")) return "No interesado";
   return "Lead";
 }

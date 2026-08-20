@@ -67,6 +67,21 @@ async function seedInitialDatabase(): Promise<AppData> {
   };
 }
 
+async function fetchAllAsistenteRows(supabase: ReturnType<typeof createSupabaseServer>) {
+  const rows: Record<string, unknown>[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await supabase
+      .from("asistentes_potenciales")
+      .select("*")
+      .order("created_at")
+      .order("id")
+      .range(from, from + 999);
+    if (error) return { data: null, error };
+    rows.push(...(data ?? []));
+    if (!data || data.length < 1000) return { data: rows, error: null };
+  }
+}
+
 export async function fetchAllData(): Promise<AppData> {
   await requireAuth();
   const supabase = createSupabaseServer();
@@ -75,7 +90,7 @@ export async function fetchAllData(): Promise<AppData> {
     await Promise.all([
       supabase.from("event_config").select("*").eq("id", 1).maybeSingle(),
       supabase.from("sponsors").select("*").order("created_at"),
-      supabase.from("asistentes_potenciales").select("*").order("created_at"),
+      fetchAllAsistenteRows(supabase),
       supabase.from("inscripciones").select("*").order("created_at"),
       supabase.from("gastos").select("*").order("created_at"),
       supabase.from("escenarios").select("*"),

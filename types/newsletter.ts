@@ -1,4 +1,11 @@
-export type NewsletterAudience = "all_sponsors" | "confirmed_sponsors";
+export type NewsletterAudience =
+  | "all_sponsors"
+  | "bairescode_sponsors"
+  | "high_priority_sponsors"
+  | "lead_sponsors"
+  | "proposal_sponsors"
+  | "negotiating_sponsors"
+  | "confirmed_sponsors";
 
 export type NewsletterDeliveryStatus =
   | "pending"
@@ -33,6 +40,7 @@ export interface SendNewsletterResult {
   failed: number;
   errors: string[];
   campaignId?: string;
+  acceptedSponsorIds?: string[];
 }
 
 export interface SendTestEmailInput {

@@ -80,6 +80,10 @@ export function SponsorDialog({ open, onOpenChange, initial, defaultValues, onSa
             <Input value={form.region} onChange={(e) => set("region", e.target.value)} placeholder="Ej: Argentina" className={inputCls} />
           </div>
           <div>
+            <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">Origen de la base</label>
+            <Input value={form.origen ?? ""} onChange={(e) => set("origen", e.target.value)} placeholder="Ej: BairesCode" className={inputCls} />
+          </div>
+          <div>
             <label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">Categoría</label>
             <Select value={form.categoria} onValueChange={(v) => set("categoria", v as SponsorCategoria)}>
               <SelectTrigger className={inputCls}><SelectValue /></SelectTrigger>
@@ -93,7 +97,7 @@ export function SponsorDialog({ open, onOpenChange, initial, defaultValues, onSa
             <Select value={form.estado} onValueChange={(v) => set("estado", v as SponsorEstado)}>
               <SelectTrigger className={inputCls}><SelectValue /></SelectTrigger>
               <SelectContent className={selectContentCls}>
-                {["Lead","Contactado","Propuesta enviada","En negociación","Confirmado","Perdido"].map((e) => <SelectItem key={e} value={e} className={selectItemCls}>{e}</SelectItem>)}
+                {["Lead","Propuesta enviada","En negociación","Confirmado","Perdido"].map((e) => <SelectItem key={e} value={e} className={selectItemCls}>{e}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { DollarSign, TrendingUp, TrendingDown, Target, Building2, Users, Monitor, Handshake } from "lucide-react";
+import { DollarSign, TrendingUp, TrendingDown, Target, Building2, Users, Monitor, Handshake, MailCheck, UserCheck } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import {
   calcKPIsByMoneda,
@@ -20,6 +20,7 @@ import type { Moneda } from "@/types";
 export default function DashboardPage() {
   const {
     sponsors,
+    asistentesPotenciales,
     inscripciones,
     gastos,
     config,
@@ -41,28 +42,14 @@ export default function DashboardPage() {
 
   const hasManualData = getActiveMonedas(sponsors, inscripciones, gastos).length > 0;
   const hasFinanceData = activeMonedas.length > 0;
-
-  if (!hasFinanceData && !hasManualData) {
-    return (
-      <div className="flex flex-col flex-1">
-        <Header title="Dashboard Ejecutivo" subtitle="CYBER.AR 2026 — Vista financiera consolidada" badge="Tiempo real" />
-        <div className="p-4 md:p-6">
-          <CyberarFinancePanel
-            summary={financeSummary}
-            loading={financeSummaryLoading}
-            error={financeSummaryError}
-            configured={financeSummaryConfigured}
-            onRefresh={() => void refreshFinanceSummary()}
-          />
-          {!financeSummary && !financeSummaryLoading && (
-            <p className="mt-6 text-center text-slate-500 dark:text-slate-400 text-sm">
-              No hay importes manuales cargados. Agregá sponsors, inscripciones o gastos para ver proyecciones internas.
-            </p>
-          )}
-        </div>
-      </div>
-    );
-  }
+  const asistentesConEmail = asistentesPotenciales.filter((a) => a.email.trim()).length;
+  const asistentesContactados = asistentesPotenciales.filter((a) =>
+    ["Invitación enviada", "Interesado", "Inscripto"].includes(a.estado)
+  ).length;
+  const asistentesInteresados = asistentesPotenciales.filter((a) => a.estado === "Interesado").length;
+  const asistentesInscriptos = asistentesPotenciales.filter(
+    (a) => a.estado === "Inscripto" || a.registrationStatus === "confirmed"
+  ).length;
 
   return (
     <div className="flex flex-col flex-1">
@@ -75,6 +62,61 @@ export default function DashboardPage() {
           configured={financeSummaryConfigured}
           onRefresh={() => void refreshFinanceSummary()}
         />
+
+        <section className="space-y-4">
+          <div className="flex items-center gap-3">
+            <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">
+              Conversión de asistentes
+            </h2>
+            <span className="text-xs font-mono px-2 py-0.5 rounded border border-cyan-200 dark:border-cyan-500/30 text-cyan-700 dark:text-cyan-300">
+              CRM
+            </span>
+          </div>
+          <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4">
+            <KPICard
+              title="Base de asistentes"
+              value={formatNumber(asistentesPotenciales.length)}
+              subtitle={`${formatNumber(asistentesConEmail)} con email`}
+              icon={Users}
+              accent="cyan"
+            />
+            <KPICard
+              title="Contactados por email"
+              value={formatNumber(asistentesContactados)}
+              subtitle="Invitación enviada o etapa posterior"
+              icon={MailCheck}
+              accent="purple"
+            />
+            <KPICard
+              title="Interesados"
+              value={formatNumber(asistentesInteresados)}
+              subtitle={
+                asistentesContactados > 0
+                  ? `${((asistentesInteresados / asistentesContactados) * 100).toFixed(1)}% de contactados`
+                  : "Sin contactos todavía"
+              }
+              icon={Handshake}
+              accent="yellow"
+            />
+            <KPICard
+              title="Inscriptos"
+              value={formatNumber(asistentesInscriptos)}
+              subtitle={
+                asistentesPotenciales.length > 0
+                  ? `${((asistentesInscriptos / asistentesPotenciales.length) * 100).toFixed(1)}% de la base`
+                  : "Sin asistentes"
+              }
+              icon={UserCheck}
+              accent="emerald"
+            />
+          </div>
+        </section>
+
+        {!hasFinanceData && !hasManualData && !financeSummary && !financeSummaryLoading && (
+          <p className="text-center text-slate-500 dark:text-slate-400 text-sm">
+            No hay importes manuales cargados. Agregá sponsors, inscripciones o gastos para ver proyecciones internas.
+          </p>
+        )}
 
         {activeMonedas.map((moneda) => {
           const kpis = kpisByMoneda[moneda]!;

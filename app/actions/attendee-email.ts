@@ -51,6 +51,23 @@ async function syncAttendeeCampaignCounts(supabase: ReturnType<typeof createSupa
   if (updateError) throw new Error(updateError.message);
 }
 
+async function markAttendeesInvited(
+  supabase: ReturnType<typeof createSupabaseServer>,
+  attendeeIds: string[]
+) {
+  if (attendeeIds.length === 0) return;
+  const { error } = await supabase
+    .from("asistentes_potenciales")
+    .update({
+      estado: "Invitación enviada",
+      ultimo_contacto: new Date().toISOString().slice(0, 10),
+      proxima_accion: "Dar seguimiento a la invitación",
+    })
+    .in("id", attendeeIds)
+    .in("estado", ["Lead", "Contactado"]);
+  if (error) throw new Error(error.message);
+}
+
 async function sendAttendeeBatch(params: {
   supabase: ReturnType<typeof createSupabaseServer>;
   resend: ReturnType<typeof getResendClient>;
@@ -62,7 +79,12 @@ async function sendAttendeeBatch(params: {
   deliveryIdPrefix: string;
   mode: "insert" | "update";
   deliveryIds?: string[];
-}): Promise<{ sent: number; failed: number; errors: string[] }> {
+}): Promise<{
+  sent: number;
+  failed: number;
+  errors: string[];
+  acceptedAttendeeIds: string[];
+}> {
   const {
     supabase,
     resend,
@@ -77,6 +99,7 @@ async function sendAttendeeBatch(params: {
   } = params;
 
   const errors: string[] = [];
+  const acceptedAttendeeIds: string[] = [];
   let sent = 0;
   let failed = 0;
 
@@ -131,7 +154,10 @@ async function sendAttendeeBatch(params: {
       const recipient = chunk[index];
       const resendEmailId = emailIds[index]?.id ?? null;
       const accepted = Boolean(resendEmailId);
-      if (accepted) sent += 1;
+      if (accepted) {
+        sent += 1;
+        acceptedAttendeeIds.push(recipient.attendeeId);
+      }
       else failed += 1;
 
       const row = {
@@ -165,17 +191,47 @@ async function sendAttendeeBatch(params: {
     }
   }
 
-  return { sent, failed, errors };
+  return { sent, failed, errors, acceptedAttendeeIds };
 }
 
 async function loadAsistentes() {
   const supabase = createSupabaseServer();
+  const rows: Record<string, unknown>[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await supabase
+      .from("asistentes_potenciales")
+      .select("*")
+      .order("created_at")
+      .order("id")
+      .range(from, from + 999);
+    if (error) throw new Error(error.message);
+    rows.push(...(data ?? []));
+    if (!data || data.length < 1000) return rows.map(mapAsistentePotencial);
+  }
+}
+
+async function loadBouncedAttendeeEmails(): Promise<Set<string>> {
+  const supabase = createSupabaseServer();
   const { data, error } = await supabase
-    .from("asistentes_potenciales")
-    .select("*")
-    .order("created_at");
+    .from("attendee_email_deliveries")
+    .select("recipient_email")
+    .eq("status", "bounced");
   if (error) throw new Error(error.message);
-  return (data ?? []).map(mapAsistentePotencial);
+  return new Set(
+    (data ?? [])
+      .map((row) => String(row.recipient_email ?? "").trim().toLowerCase())
+      .filter(Boolean)
+  );
+}
+
+async function resolveAudienceRecipients(audience: AttendeeEmailAudience) {
+  const [asistentes, excludedEmails] = await Promise.all([
+    loadAsistentes(),
+    audience === "not_registered_safe"
+      ? loadBouncedAttendeeEmails()
+      : Promise.resolve(new Set<string>()),
+  ]);
+  return resolveAttendeeRecipients(asistentes, audience, excludedEmails);
 }
 
 export async function getAttendeeEmailStatus(): Promise<AttendeeEmailStatus> {
@@ -192,8 +248,7 @@ export async function previewAttendeeEmailRecipients(
   audience: AttendeeEmailAudience
 ): Promise<AttendeeEmailPreview> {
   await requireAuth();
-  const asistentes = await loadAsistentes();
-  const { recipients, skipped } = resolveAttendeeRecipients(asistentes, audience);
+  const { recipients, skipped } = await resolveAudienceRecipients(audience);
   return { audience, recipients, skipped };
 }
 
@@ -310,8 +365,7 @@ export async function sendAttendeeEmail(
     return { ok: false, sent: 0, failed: 0, errors: ["El contenido HTML es obligatorio"] };
   }
 
-  const asistentes = await loadAsistentes();
-  const { recipients } = resolveAttendeeRecipients(asistentes, input.audience);
+  const { recipients } = await resolveAudienceRecipients(input.audience);
   if (recipients.length === 0) {
     return {
       ok: false,
@@ -353,6 +407,7 @@ export async function sendAttendeeEmail(
     });
 
     await syncAttendeeCampaignCounts(supabase, campaignId);
+    await markAttendeesInvited(supabase, batchResult.acceptedAttendeeIds);
 
     return {
       ok: batchResult.sent > 0,
@@ -360,6 +415,7 @@ export async function sendAttendeeEmail(
       failed: batchResult.failed,
       errors: batchResult.errors,
       campaignId,
+      acceptedAttendeeIds: batchResult.acceptedAttendeeIds,
     };
   } catch (err) {
     return {
@@ -452,6 +508,7 @@ export async function retryFailedAttendeeEmails(
     }
 
     await syncAttendeeCampaignCounts(supabase, campaignId);
+    await markAttendeesInvited(supabase, batchResult.acceptedAttendeeIds);
 
     return {
       ok: batchResult.sent > 0,
@@ -459,6 +516,7 @@ export async function retryFailedAttendeeEmails(
       failed: batchResult.failed,
       errors: batchResult.errors,
       campaignId,
+      acceptedAttendeeIds: batchResult.acceptedAttendeeIds,
     };
   } catch (err) {
     return {

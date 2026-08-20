@@ -5,6 +5,7 @@ import { Resend } from "resend";
 import { normalizeNewsletterHtml } from "../lib/newsletter/html.ts";
 
 config({ path: ".env.local" });
+config({ path: ".env.retry" });
 
 const campaignId = process.argv[2];
 const htmlPath = process.argv[3];

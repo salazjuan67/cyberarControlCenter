@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS sponsors (
   segmento TEXT DEFAULT '',
   prioridad TEXT DEFAULT '',
   region TEXT DEFAULT '',
+  origen TEXT DEFAULT '',
   ultimo_contacto DATE,
   proxima_accion TEXT DEFAULT '',
   notas TEXT DEFAULT '',

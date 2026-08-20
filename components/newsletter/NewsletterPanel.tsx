@@ -40,6 +40,11 @@ const selectItemCls =
 
 const audienceLabels: Record<NewsletterAudience, string> = {
   all_sponsors: "Todos los sponsors con email",
+  bairescode_sponsors: "Base BairesCode",
+  high_priority_sponsors: "Prioridad alta",
+  lead_sponsors: "Leads",
+  proposal_sponsors: "Propuesta enviada",
+  negotiating_sponsors: "En negociación",
   confirmed_sponsors: "Solo sponsors confirmados",
 };
 
@@ -154,7 +159,7 @@ export function NewsletterPanel() {
     }
 
     const confirmed = window.confirm(
-      `¿Enviar newsletter a ${recipientCount} destinatario(s)? Esta acción no se puede deshacer.`
+        `¿Enviar campaña a ${recipientCount} sponsor(s)? Esta acción no se puede deshacer.`
     );
     if (!confirmed) return;
 
@@ -173,12 +178,29 @@ export function NewsletterPanel() {
         return;
       }
 
+      if (result.acceptedSponsorIds?.length) {
+        const acceptedIds = new Set(result.acceptedSponsorIds);
+        const today = new Date().toISOString().slice(0, 10);
+        useStore.setState((state) => ({
+          sponsors: state.sponsors.map((sponsor) =>
+            acceptedIds.has(sponsor.id) && sponsor.estado === "Lead"
+              ? {
+                  ...sponsor,
+                  estado: "Propuesta enviada",
+                  ultimoContacto: today,
+                  proximaAccion: "Dar seguimiento a la propuesta enviada",
+                }
+              : sponsor
+          ),
+        }));
+      }
+
       const partial =
         result.failed > 0
           ? ` (${result.failed} fallaron)`
           : "";
       setMessage(
-        `Newsletter enviada: ${result.sent} correo(s)${partial}.` +
+        `Campaña enviada: ${result.sent} correo(s)${partial}.` +
           (result.campaignId ? " Seguí las métricas abajo." : "")
       );
       if (result.errors.length > 0) {
@@ -393,7 +415,7 @@ export function NewsletterPanel() {
               ) : (
                 <Mail className="w-4 h-4" />
               )}
-              Enviar newsletter
+              Enviar campaña a sponsors
             </Button>
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-3 leading-relaxed">
               Los emails se toman del CRM de sponsors. Asegurate de tener emails cargados y un

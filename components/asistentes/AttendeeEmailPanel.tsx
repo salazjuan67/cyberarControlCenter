@@ -25,7 +25,9 @@ const audienceLabels: Record<AttendeeEmailAudience, string> = {
   all: "Todos con email",
   with_email: "Todos con email",
   interested: "En pipeline (Lead → Interesado)",
-  registered_confirmed: "Inscripción confirmada",
+  bairescode: "Base BairesCode",
+  not_registered_safe: "No inscriptos · excluir rebotes",
+  registered_confirmed: "Todos los inscriptos",
   registered_pending: "Inscripción pendiente",
   registered_rejected: "Inscripción rechazada",
 };
@@ -123,6 +125,22 @@ export function AttendeeEmailPanel() {
       if (result.errors.length > 0 && result.sent === 0) {
         setError(result.errors.join(" · "));
         return;
+      }
+      if (result.acceptedAttendeeIds?.length) {
+        const acceptedIds = new Set(result.acceptedAttendeeIds);
+        const today = new Date().toISOString().slice(0, 10);
+        useStore.setState((state) => ({
+          asistentesPotenciales: state.asistentesPotenciales.map((attendee) =>
+            acceptedIds.has(attendee.id) && ["Lead", "Contactado"].includes(attendee.estado)
+              ? {
+                  ...attendee,
+                  estado: "Invitación enviada",
+                  ultimoContacto: today,
+                  proximaAccion: "Dar seguimiento a la invitación",
+                }
+              : attendee
+          ),
+        }));
       }
       setMessage(
         `Enviado a ${result.sent} contacto(s)${result.failed ? ` (${result.failed} fallaron)` : ""}.` +

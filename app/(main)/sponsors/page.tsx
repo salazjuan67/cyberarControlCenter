@@ -21,12 +21,13 @@ import { SponsorPipeline } from "@/components/sponsors/SponsorPipeline";
 import { SponsorImportDialog } from "@/components/sponsors/SponsorImportDialog";
 import { SponsorFiltersBar } from "@/components/sponsors/SponsorFiltersBar";
 import { SponsorEnrichmentPanel } from "@/components/sponsors/SponsorEnrichmentPanel";
+import { NewsletterPanel } from "@/components/newsletter/NewsletterPanel";
 import type { Sponsor, SponsorCategoria, SponsorEstado, Moneda } from "@/types";
 
 const EMPTY_BASE: Omit<Sponsor, "id" | "moneda"> = {
   empresa: "", contacto: "", email: "", telefono: "", categoria: "Plata", estado: "Lead",
   montoEstimado: 0, montoConfirmado: 0, probabilidad: 50, responsable: "", segmento: "",
-  prioridad: "", region: "",
+  prioridad: "", region: "", origen: "",
   ultimoContacto: new Date().toISOString().split("T")[0], proximaAccion: "", notas: "",
   proposedEmail: "", emailSourceUrl: "",
 };
@@ -37,7 +38,7 @@ export default function SponsorsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [editingSponsor, setEditingSponsor] = useState<Sponsor | null>(null);
-  const [view, setView] = useState<"tabla" | "pipeline" | "emails">("tabla");
+  const [view, setView] = useState<"tabla" | "pipeline" | "emails" | "envios">("tabla");
 
   const activeMonedas = getActiveMonedas(sponsors, [], []);
   const confirmadoByMoneda = sumByMoneda(
@@ -81,16 +82,44 @@ export default function SponsorsPage() {
       <Header title="Sponsors & Auspiciantes" subtitle={`${sponsors.length} sponsors — ${confirmados} confirmados`} badge="CRM"
         actions={
           <div className="hidden sm:flex rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
-            {(["tabla", "pipeline", "emails"] as const).map((v) => (
+            {(["tabla", "pipeline", "emails", "envios"] as const).map((v) => (
               <button key={v} onClick={() => setView(v)}
                 className={`px-3 py-1.5 text-xs capitalize transition-colors ${view === v ? "bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white" : "bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"}`}>
-                {v === "tabla" ? "Tabla" : v === "pipeline" ? "Pipeline" : "Emails"}
+                {v === "tabla"
+                  ? "Tabla"
+                  : v === "pipeline"
+                    ? "Pipeline"
+                    : v === "emails"
+                      ? "Buscar emails"
+                      : "Envíos"}
               </button>
             ))}
           </div>
         }
       />
-      <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+      <div className="p-4 md:p-6 space-y-4 md:space-y-6 w-full">
+        <div className="sm:hidden grid grid-cols-4 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
+          {(["tabla", "pipeline", "emails", "envios"] as const).map((v) => (
+            <button
+              key={v}
+              onClick={() => setView(v)}
+              className={`min-w-0 px-1.5 py-2 text-[10px] transition-colors ${
+                view === v
+                  ? "bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white font-medium"
+                  : "bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400"
+              }`}
+            >
+              {v === "tabla"
+                ? "Tabla"
+                : v === "pipeline"
+                  ? "Pipeline"
+                  : v === "emails"
+                    ? "Emails"
+                    : "Envíos"}
+            </button>
+          ))}
+        </div>
+
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           <KPICard title="Total Confirmado" value={formatTotalsByMoneda(confirmadoByMoneda) || formatCurrency(0, config.moneda)} subtitle={`${confirmados} sponsors activos`} icon={DollarSign} accent="emerald" />
           <KPICard title="Total Potencial" value={formatTotalsByMoneda(potencialByMoneda) || formatCurrency(0, config.moneda)} subtitle="Sponsors no confirmados" icon={Building2} accent="yellow" />
@@ -98,7 +127,7 @@ export default function SponsorsPage() {
           <KPICard title="Pipeline Total" value={formatKpiByMoneda((m) => calcSponsorsConfirmados(sponsors, m) + calcSponsorsPotencial(sponsors, m))} subtitle="Confirmado + Potencial" icon={Building2} accent="purple" />
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 md:gap-3">
+        {view !== "envios" && <div className="flex flex-wrap items-center gap-2 md:gap-3">
           <div className="relative flex-1 min-w-40">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
             <Input
@@ -114,7 +143,7 @@ export default function SponsorsPage() {
           >
             <SelectTrigger className={`w-40 ${selectCls}`}><Filter className="w-3.5 h-3.5 mr-1.5 text-slate-400" /><SelectValue /></SelectTrigger>
             <SelectContent className={selectContentCls}>
-              {["Todos","Lead","Contactado","Propuesta enviada","En negociación","Confirmado","Perdido"].map((e) => <SelectItem key={e} value={e} className={selectItemCls}>{e}</SelectItem>)}
+              {["Todos","Lead","Propuesta enviada","En negociación","Confirmado","Perdido"].map((e) => <SelectItem key={e} value={e} className={selectItemCls}>{e}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select
@@ -142,20 +171,22 @@ export default function SponsorsPage() {
             <span className="hidden sm:inline">Nuevo Sponsor</span>
             <span className="sm:hidden">Nuevo</span>
           </Button>
-        </div>
+        </div>}
 
-        <SponsorFiltersBar
+        {view !== "envios" && <SponsorFiltersBar
           sponsors={sponsors}
           filters={filters}
           onChange={setFilters}
           resultCount={filtered.length}
-        />
+        />}
 
         {view === "tabla"
           ? <SponsorTable sponsors={filtered} onEdit={(s) => { setEditingSponsor(s); setDialogOpen(true); }} onDelete={deleteSponsor} />
           : view === "pipeline"
             ? <SponsorPipeline sponsors={filtered} onEdit={(s) => { setEditingSponsor(s); setDialogOpen(true); }} />
-            : <SponsorEnrichmentPanel />
+            : view === "emails"
+              ? <SponsorEnrichmentPanel />
+              : <NewsletterPanel />
         }
       </div>
       <SponsorDialog open={dialogOpen} onOpenChange={setDialogOpen} initial={editingSponsor || undefined} defaultValues={defaultSponsorValues} onSave={handleSave} />

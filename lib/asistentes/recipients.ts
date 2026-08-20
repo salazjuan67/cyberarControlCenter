@@ -9,7 +9,8 @@ export function isValidEmail(email: string): boolean {
 
 export function resolveAttendeeRecipients(
   asistentes: AsistentePotencial[],
-  audience: AttendeeEmailAudience
+  audience: AttendeeEmailAudience,
+  excludedEmails: ReadonlySet<string> = new Set()
 ): { recipients: AttendeeEmailRecipient[]; skipped: number } {
   let filtered = asistentes;
 
@@ -17,8 +18,16 @@ export function resolveAttendeeRecipients(
     filtered = asistentes.filter((a) =>
       ["Lead", "Contactado", "Invitación enviada", "Interesado"].includes(a.estado)
     );
+  } else if (audience === "bairescode") {
+    filtered = asistentes.filter((a) => a.origen.trim().toLowerCase() === "bairescode");
+  } else if (audience === "not_registered_safe") {
+    filtered = asistentes.filter(
+      (a) => a.estado !== "Inscripto" && a.registrationStatus !== "confirmed"
+    );
   } else if (audience === "registered_confirmed") {
-    filtered = asistentes.filter((a) => a.registrationStatus === "confirmed");
+    filtered = asistentes.filter(
+      (a) => a.estado === "Inscripto" || a.registrationStatus === "confirmed"
+    );
   } else if (audience === "registered_pending") {
     filtered = asistentes.filter((a) => a.registrationStatus === "pending");
   } else if (audience === "registered_rejected") {
@@ -32,6 +41,10 @@ export function resolveAttendeeRecipients(
   for (const asistente of filtered) {
     const email = asistente.email?.trim().toLowerCase();
     if (!email || !isValidEmail(email)) {
+      skipped += 1;
+      continue;
+    }
+    if (excludedEmails.has(email)) {
       skipped += 1;
       continue;
     }

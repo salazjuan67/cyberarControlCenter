@@ -46,6 +46,8 @@ export type AttendeeEmailAudience =
   | "all"
   | "with_email"
   | "interested"
+  | "bairescode"
+  | "not_registered_safe"
   | "registered_confirmed"
   | "registered_pending"
   | "registered_rejected";
@@ -154,6 +156,7 @@ export interface SendAttendeeEmailResult {
   failed: number;
   errors: string[];
   campaignId?: string;
+  acceptedAttendeeIds?: string[];
 }
 
 export interface AttendeeEmailStatus {

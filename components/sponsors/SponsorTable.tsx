@@ -55,6 +55,7 @@ export function SponsorTable({ sponsors, onEdit, onDelete }: SponsorTableProps) 
               <th className="text-left px-4 py-3 text-xs text-slate-400 dark:text-slate-500 font-medium uppercase tracking-wider">Empresa</th>
               <th className="text-left px-4 py-3 text-xs text-slate-400 dark:text-slate-500 font-medium uppercase tracking-wider">Prioridad</th>
               <th className="text-left px-4 py-3 text-xs text-slate-400 dark:text-slate-500 font-medium uppercase tracking-wider">Región</th>
+              <th className="text-left px-4 py-3 text-xs text-slate-400 dark:text-slate-500 font-medium uppercase tracking-wider">Origen</th>
               <th className="text-left px-4 py-3 text-xs text-slate-400 dark:text-slate-500 font-medium uppercase tracking-wider">Rubro</th>
               <th className="text-left px-4 py-3 text-xs text-slate-400 dark:text-slate-500 font-medium uppercase tracking-wider">Categoría</th>
               <th className="text-left px-4 py-3 text-xs text-slate-400 dark:text-slate-500 font-medium uppercase tracking-wider">Estado</th>
@@ -79,6 +80,7 @@ export function SponsorTable({ sponsors, onEdit, onDelete }: SponsorTableProps) 
                 </td>
                 <td className="px-4 py-3 text-slate-500 dark:text-slate-400 text-xs whitespace-nowrap">{s.prioridad || "—"}</td>
                 <td className="px-4 py-3 text-slate-500 dark:text-slate-400 text-xs">{s.region || "—"}</td>
+                <td className="px-4 py-3 text-slate-500 dark:text-slate-400 text-xs whitespace-nowrap">{s.origen || "—"}</td>
                 <td className="px-4 py-3 text-slate-500 dark:text-slate-400 text-xs max-w-36 truncate" title={s.segmento}>{s.segmento || "—"}</td>
                 <td className="px-4 py-3">
                   <Badge variant="outline" className={cn("text-xs", CATEGORIA_COLORS[s.categoria])}>{s.categoria}</Badge>
