@@ -33,6 +33,12 @@ function registrationStatus(value: unknown): RegistrationStatus {
   return "pending";
 }
 
+function isTestRegistration(registration: ExternalRegistration): boolean {
+  if (registration.isTest) return true;
+  const value = `${registration.fullName} ${registration.email}`.toLowerCase();
+  return /(^|[^a-záéíóúñ])(test|prueba)([^a-záéíóúñ]|$)/i.test(value);
+}
+
 function parseRegistration(value: unknown): ExternalRegistration | null {
   if (!value || typeof value !== "object") return null;
   const row = value as Record<string, unknown>;
@@ -99,7 +105,8 @@ export async function fetchRegistrationsPage(
     nextCursor: payload.next_cursor ? text(payload.next_cursor) : null,
     registrations: payload.registrations
       .map(parseRegistration)
-      .filter((row): row is ExternalRegistration => Boolean(row)),
+      .filter((row): row is ExternalRegistration => Boolean(row))
+      .filter((row) => !isTestRegistration(row)),
   };
 }
 

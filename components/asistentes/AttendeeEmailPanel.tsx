@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { AlertCircle, Loader2, Mail, Send, Users } from "lucide-react";
+import { AlertCircle, Loader2, Mail, Send, Sparkles, Users } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import {
 } from "@/app/actions/attendee-email";
 import { NewsletterHtmlPreview } from "@/components/newsletter/NewsletterHtmlPreview";
 import { AttendeeEmailTrackingPanel } from "@/components/asistentes/AttendeeEmailTrackingPanel";
+import { buildRegisteredAttendeeSocialTemplate } from "@/lib/asistentes/registered-social-template";
 import type { AttendeeEmailAudience } from "@/types/asistentes";
 
 const inputCls = "bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-200";
@@ -77,6 +78,22 @@ export function AttendeeEmailPanel() {
   useEffect(() => {
     if (message || error) window.scrollTo({ top: 0, behavior: "smooth" });
   }, [message, error]);
+
+  function handleGenerateTemplate() {
+    if (
+      html.trim() &&
+      !window.confirm("Esto reemplazará el asunto y el HTML actual. ¿Querés continuar?")
+    ) {
+      return;
+    }
+
+    const template = buildRegisteredAttendeeSocialTemplate();
+    setSubject(template.subject);
+    setHtml(template.html);
+    setAudience("registered_confirmed");
+    setError(null);
+    setMessage("Template generado. Editá los textos, la imagen y los enlaces marcados en el HTML.");
+  }
 
   async function handleSendTest() {
     if (!html.trim() || !testEmail.trim()) {
@@ -198,6 +215,18 @@ export function AttendeeEmailPanel() {
               <label className="text-xs text-slate-500 mb-1.5 block">Asunto</label>
               <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Invitación CYBER.AR 2026" className={inputCls} />
             </div>
+            <Button
+              type="button"
+              onClick={handleGenerateTemplate}
+              className="bg-violet-600 hover:bg-violet-500 text-white font-semibold gap-2"
+            >
+              <Sparkles className="w-4 h-4" />
+              Generar template
+            </Button>
+            <p className="text-xs text-slate-400 dark:text-slate-500">
+              Crea la estructura visual de los emails anteriores para que solo edites contenido,
+              imágenes y enlaces.
+            </p>
             <div>
               <label className="text-xs text-slate-500 mb-1.5 block">HTML del email</label>
               <Textarea value={html} onChange={(e) => setHtml(e.target.value)} rows={14} className={`${inputCls} font-mono text-xs`} placeholder="Pegá el HTML de la invitación..." />
