@@ -207,26 +207,28 @@ export function AttendeeEmailPanel() {
       <div className="grid gap-4 xl:grid-cols-2 xl:items-start">
         <div className="space-y-4">
           <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5 space-y-4">
-            <div className="flex items-center gap-2">
-              <Mail className="w-4 h-4 text-violet-500" />
-              <h3 className="font-semibold text-sm text-slate-700 dark:text-slate-200">Contenido</h3>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2">
+                <Mail className="w-4 h-4 text-violet-500" />
+                <h3 className="font-semibold text-sm text-slate-700 dark:text-slate-200">Contenido</h3>
+              </div>
+              <Button
+                type="button"
+                onClick={handleGenerateTemplate}
+                className="w-full sm:w-auto bg-violet-600 hover:bg-violet-500 text-white font-semibold gap-2"
+              >
+                <Sparkles className="w-4 h-4" />
+                Cargar template para inscriptos
+              </Button>
             </div>
+            <p className="rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-xs text-violet-800 dark:border-violet-500/20 dark:bg-violet-500/10 dark:text-violet-200">
+              Carga el email de novedades con redes sociales, auspiciantes y selecciona
+              automáticamente “Todos los inscriptos”.
+            </p>
             <div>
               <label className="text-xs text-slate-500 mb-1.5 block">Asunto</label>
               <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Invitación CYBER.AR 2026" className={inputCls} />
             </div>
-            <Button
-              type="button"
-              onClick={handleGenerateTemplate}
-              className="bg-violet-600 hover:bg-violet-500 text-white font-semibold gap-2"
-            >
-              <Sparkles className="w-4 h-4" />
-              Generar template
-            </Button>
-            <p className="text-xs text-slate-400 dark:text-slate-500">
-              Crea la estructura visual de los emails anteriores para que solo edites contenido,
-              imágenes y enlaces.
-            </p>
             <div>
               <label className="text-xs text-slate-500 mb-1.5 block">HTML del email</label>
               <Textarea value={html} onChange={(e) => setHtml(e.target.value)} rows={14} className={`${inputCls} font-mono text-xs`} placeholder="Pegá el HTML de la invitación..." />
