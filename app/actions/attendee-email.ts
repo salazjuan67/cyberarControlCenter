@@ -16,11 +16,13 @@ import {
   buildAttendeeCampaignStats,
   mapAttendeeCampaign,
   mapAttendeeDelivery,
+  mapAttendeeEmailDraft,
 } from "@/lib/asistentes/campaigns";
 import type {
   AttendeeEmailAudience,
   AttendeeEmailCampaign,
   AttendeeEmailCampaignDetail,
+  AttendeeEmailDraft,
   AttendeeEmailHistoryEntry,
   AttendeeEmailPreview,
   AttendeeEmailRecipient,
@@ -233,7 +235,7 @@ async function loadBouncedAttendeeEmails(): Promise<Set<string>> {
 async function resolveAudienceRecipients(audience: AttendeeEmailAudience) {
   const [asistentes, excludedEmails] = await Promise.all([
     loadAsistentes(),
-    audience === "not_registered_safe"
+    audience === "not_registered_safe" || audience === "unconfirmed_unpaid"
       ? loadBouncedAttendeeEmails()
       : Promise.resolve(new Set<string>()),
   ]);
@@ -282,6 +284,49 @@ export async function getScheduledAttendeeEmailCampaigns(): Promise<AttendeeEmai
     .order("scheduled_for", { ascending: true });
   if (error) throw new Error(error.message);
   return (data ?? []).map(mapAttendeeCampaign);
+}
+
+export async function getAttendeeEmailDrafts(): Promise<AttendeeEmailDraft[]> {
+  await requireAuth();
+  const supabase = createSupabaseServer();
+  const { data, error } = await supabase
+    .from("attendee_email_drafts")
+    .select("*")
+    .eq("status", "draft")
+    .order("sort_order", { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(mapAttendeeEmailDraft);
+}
+
+export async function updateAttendeeEmailDraft(input: {
+  id: string;
+  subject: string;
+  html: string;
+  audience: AttendeeEmailAudience;
+}): Promise<AttendeeEmailDraft> {
+  await requireAuth();
+  const id = input.id.trim();
+  const subject = input.subject.trim();
+  const html = normalizeNewsletterHtml(input.html.trim());
+  if (!id || !subject || !html) {
+    throw new Error("El borrador requiere asunto y contenido HTML.");
+  }
+
+  const supabase = createSupabaseServer();
+  const { data, error } = await supabase
+    .from("attendee_email_drafts")
+    .update({
+      subject,
+      html,
+      audience: input.audience,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .eq("status", "draft")
+    .select("*")
+    .single();
+  if (error) throw new Error(error.message);
+  return mapAttendeeEmailDraft(data);
 }
 
 export async function getAttendeeEmailCampaignDetail(

@@ -48,6 +48,7 @@ export type AttendeeEmailAudience =
   | "interested"
   | "bairescode"
   | "not_registered_safe"
+  | "unconfirmed_unpaid"
   | "registered_confirmed"
   | "registered_pending"
   | "registered_rejected";
@@ -86,6 +87,19 @@ export interface AttendeeEmailCampaign {
   html?: string;
   scheduledFor: string;
   cancelledAt: string;
+}
+
+export interface AttendeeEmailDraft {
+  id: string;
+  sortOrder: number;
+  name: string;
+  subject: string;
+  html: string;
+  audience: AttendeeEmailAudience;
+  recommendedFor: string;
+  status: "draft";
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface RetryFailedAttendeeEmailInput {

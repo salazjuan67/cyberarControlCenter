@@ -24,6 +24,7 @@ const AUDIENCE_LABELS: Record<string, string> = {
   interested: "En pipeline",
   bairescode: "Base BairesCode",
   not_registered_safe: "No inscriptos · sin rebotes",
+  unconfirmed_unpaid: "Potenciales · no confirmados ni pagados",
   registered_confirmed: "Todos los inscriptos",
   registered_pending: "Inscripción pendiente",
   registered_rejected: "Inscripción rechazada",

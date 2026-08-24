@@ -24,6 +24,15 @@ export function resolveAttendeeRecipients(
     filtered = asistentes.filter(
       (a) => a.estado !== "Inscripto" && a.registrationStatus !== "confirmed"
     );
+  } else if (audience === "unconfirmed_unpaid") {
+    filtered = asistentes.filter((a) => {
+      const registrationStatus = a.registrationStatus?.trim().toLowerCase();
+      const paymentStatus = a.paymentStatus?.trim().toLowerCase();
+      return (
+        registrationStatus !== "confirmed" &&
+        !["aprobado", "approved", "paid"].includes(paymentStatus ?? "")
+      );
+    });
   } else if (audience === "registered_confirmed") {
     filtered = asistentes.filter(
       (a) => a.estado === "Inscripto" || a.registrationStatus === "confirmed"

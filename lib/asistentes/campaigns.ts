@@ -3,6 +3,7 @@ import type {
   AttendeeEmailCampaign,
   AttendeeEmailCampaignStats,
   AttendeeEmailDeliveryRow,
+  AttendeeEmailDraft,
 } from "@/types/asistentes";
 
 export function mapAttendeeCampaign(row: Record<string, unknown>): AttendeeEmailCampaign {
@@ -38,6 +39,21 @@ export function mapAttendeeDelivery(row: Record<string, unknown>): AttendeeEmail
     bounceReason: (row.bounce_reason as string) ?? "",
     lastEventAt: (row.last_event_at as string) ?? "",
     openedAt: (row.opened_at as string) ?? "",
+  };
+}
+
+export function mapAttendeeEmailDraft(row: Record<string, unknown>): AttendeeEmailDraft {
+  return {
+    id: row.id as string,
+    sortOrder: Number(row.sort_order),
+    name: row.name as string,
+    subject: row.subject as string,
+    html: (row.html as string) ?? "",
+    audience: row.audience as AttendeeEmailDraft["audience"],
+    recommendedFor: (row.recommended_for as string) ?? "",
+    status: "draft",
+    createdAt: (row.created_at as string) ?? "",
+    updatedAt: (row.updated_at as string) ?? "",
   };
 }
 

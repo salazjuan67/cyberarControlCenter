@@ -1,0 +1,1 @@
+ALTER TABLE attendee_email_drafts ENABLE ROW LEVEL SECURITY;

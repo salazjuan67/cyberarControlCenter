@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { AlertCircle, CalendarClock, Loader2, Mail, Send, Sparkles, Users } from "lucide-react";
+import { AlertCircle, CalendarClock, Loader2, Mail, Save, Send, Sparkles, Users } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,12 +13,14 @@ import {
   scheduleAttendeeEmail,
   sendAttendeeEmail,
   sendAttendeeTestEmail,
+  updateAttendeeEmailDraft,
 } from "@/app/actions/attendee-email";
 import { NewsletterHtmlPreview } from "@/components/newsletter/NewsletterHtmlPreview";
+import { AttendeeEmailDraftsPanel } from "@/components/asistentes/AttendeeEmailDraftsPanel";
 import { AttendeeEmailTrackingPanel } from "@/components/asistentes/AttendeeEmailTrackingPanel";
 import { ScheduledAttendeeEmailsPanel } from "@/components/asistentes/ScheduledAttendeeEmailsPanel";
 import { buildRegisteredAttendeeSocialTemplate } from "@/lib/asistentes/registered-social-template";
-import type { AttendeeEmailAudience } from "@/types/asistentes";
+import type { AttendeeEmailAudience, AttendeeEmailDraft } from "@/types/asistentes";
 
 const inputCls = "bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-200";
 const selectContentCls = "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700";
@@ -30,6 +32,7 @@ const audienceLabels: Record<AttendeeEmailAudience, string> = {
   interested: "En pipeline (Lead → Interesado)",
   bairescode: "Base BairesCode",
   not_registered_safe: "No inscriptos · excluir rebotes",
+  unconfirmed_unpaid: "Potenciales · no confirmados ni pagados",
   registered_confirmed: "Todos los inscriptos",
   registered_pending: "Inscripción pendiente",
   registered_rejected: "Inscripción rechazada",
@@ -45,6 +48,10 @@ export function AttendeeEmailPanel() {
   const [skippedCount, setSkippedCount] = useState(0);
   const [subject, setSubject] = useState("");
   const [html, setHtml] = useState("");
+  const [activeDraftId, setActiveDraftId] = useState<string | null>(null);
+  const [activeDraftName, setActiveDraftName] = useState("");
+  const [draftRefreshKey, setDraftRefreshKey] = useState(0);
+  const [savingDraft, setSavingDraft] = useState(false);
   const [testEmail, setTestEmail] = useState("");
   const [scheduledFor, setScheduledFor] = useState("");
   const [loadingPreview, setLoadingPreview] = useState(false);
@@ -92,6 +99,22 @@ export function AttendeeEmailPanel() {
     []
   );
 
+  const handleEditDraft = useCallback((draft: AttendeeEmailDraft) => {
+    setActiveDraftId(draft.id);
+    setActiveDraftName(draft.name);
+    setSubject(draft.subject);
+    setHtml(draft.html);
+    setAudience(draft.audience);
+    setMessage(`Borrador “${draft.name}” cargado en el editor.`);
+    setError(null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+
+  const handleDraftError = useCallback((draftError: string) => {
+    setError(draftError);
+    setMessage(null);
+  }, []);
+
   function handleGenerateTemplate() {
     if (
       html.trim() &&
@@ -101,11 +124,35 @@ export function AttendeeEmailPanel() {
     }
 
     const template = buildRegisteredAttendeeSocialTemplate();
+    setActiveDraftId(null);
+    setActiveDraftName("");
     setSubject(template.subject);
     setHtml(template.html);
     setAudience("registered_confirmed");
     setError(null);
     setMessage("Template generado. Editá los textos, la imagen y los enlaces marcados en el HTML.");
+  }
+
+  async function handleSaveDraft() {
+    if (!activeDraftId) return;
+    setSavingDraft(true);
+    setError(null);
+    try {
+      const updated = await updateAttendeeEmailDraft({
+        id: activeDraftId,
+        subject,
+        html,
+        audience,
+      });
+      setHtml(updated.html);
+      setSubject(updated.subject);
+      setMessage(`Borrador “${updated.name}” guardado.`);
+      setDraftRefreshKey((value) => value + 1);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo guardar el borrador");
+    } finally {
+      setSavingDraft(false);
+    }
   }
 
   async function handleSendTest() {
@@ -267,19 +314,43 @@ export function AttendeeEmailPanel() {
                 <Mail className="w-4 h-4 text-violet-500" />
                 <h3 className="font-semibold text-sm text-slate-700 dark:text-slate-200">Contenido</h3>
               </div>
-              <Button
-                type="button"
-                onClick={handleGenerateTemplate}
-                className="w-full sm:w-auto bg-violet-600 hover:bg-violet-500 text-white font-semibold gap-2"
-              >
-                <Sparkles className="w-4 h-4" />
-                Cargar template para inscriptos
-              </Button>
+              <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+                {activeDraftId && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleSaveDraft}
+                    disabled={savingDraft}
+                    className="gap-2 border-cyan-300 text-cyan-700 hover:bg-cyan-50 dark:border-cyan-500/40 dark:text-cyan-300"
+                  >
+                    {savingDraft ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4" />
+                    )}
+                    Guardar borrador
+                  </Button>
+                )}
+                <Button
+                  type="button"
+                  onClick={handleGenerateTemplate}
+                  className="bg-violet-600 font-semibold text-white hover:bg-violet-500"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Template para inscriptos
+                </Button>
+              </div>
             </div>
-            <p className="rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-xs text-violet-800 dark:border-violet-500/20 dark:bg-violet-500/10 dark:text-violet-200">
-              Carga el email de novedades con redes sociales, auspiciantes y selecciona
-              automáticamente “Todos los inscriptos”.
-            </p>
+            {activeDraftId ? (
+              <p className="rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs text-cyan-800 dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-200">
+                Editando borrador: <strong>{activeDraftName}</strong>. Los cambios no se guardan
+                hasta presionar “Guardar borrador”.
+              </p>
+            ) : (
+              <p className="rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-xs text-violet-800 dark:border-violet-500/20 dark:bg-violet-500/10 dark:text-violet-200">
+                Carga el email de novedades para asistentes confirmados.
+              </p>
+            )}
             <div>
               <label className="text-xs text-slate-500 mb-1.5 block">Asunto</label>
               <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Invitación CYBER.AR 2026" className={inputCls} />
@@ -372,6 +443,13 @@ export function AttendeeEmailPanel() {
           </div>
         </div>
       </div>
+
+      <AttendeeEmailDraftsPanel
+        activeDraftId={activeDraftId}
+        refreshKey={draftRefreshKey}
+        onEdit={handleEditDraft}
+        onError={handleDraftError}
+      />
 
       <ScheduledAttendeeEmailsPanel
         refreshKey={scheduledRefreshKey}
