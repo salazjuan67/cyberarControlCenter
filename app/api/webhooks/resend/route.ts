@@ -13,6 +13,7 @@ const STATUS_RANK: Record<NewsletterDeliveryStatus, number> = {
   delivered: 3,
   bounced: 3,
   failed: 3,
+  cancelled: 4,
 };
 
 function buildDeliveryUpdate(event: ResendWebhookEvent) {
@@ -96,7 +97,7 @@ export async function POST(request: Request) {
   for (const table of ["newsletter_deliveries", "attendee_email_deliveries"] as const) {
     const { data: existing, error: fetchError } = await supabase
       .from(table)
-      .select("status")
+      .select("*")
       .eq("resend_email_id", emailId)
       .maybeSingle();
 
@@ -121,6 +122,35 @@ export async function POST(request: Request) {
     if (error) {
       console.error(`Failed to update ${table}:`, error.message);
       return Response.json({ error: "Database update failed" }, { status: 500 });
+    }
+
+    if (
+      table === "attendee_email_deliveries" &&
+      nextStatus === "sent" &&
+      existing.attendee_id &&
+      existing.campaign_id
+    ) {
+      const { data: campaign, error: campaignError } = await supabase
+        .from("attendee_email_campaigns")
+        .select("scheduled_for")
+        .eq("id", existing.campaign_id)
+        .maybeSingle();
+      if (campaignError) {
+        console.error("Failed to load scheduled attendee campaign:", campaignError.message);
+      } else if (campaign?.scheduled_for) {
+        const { error: attendeeError } = await supabase
+          .from("asistentes_potenciales")
+          .update({
+            estado: "Invitación enviada",
+            ultimo_contacto: String(update.last_event_at).slice(0, 10),
+            proxima_accion: "Dar seguimiento a la invitación",
+          })
+          .eq("id", existing.attendee_id)
+          .in("estado", ["Lead", "Contactado"]);
+        if (attendeeError) {
+          console.error("Failed to mark scheduled attendee as invited:", attendeeError.message);
+        }
+      }
     }
 
     return Response.json({ ok: true });

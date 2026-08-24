@@ -16,6 +16,8 @@ export function mapAttendeeCampaign(row: Record<string, unknown>): AttendeeEmail
     failedCount: Number(row.failed_count),
     createdAt: (row.created_at as string) ?? "",
     html: (row.html as string) ?? "",
+    scheduledFor: (row.scheduled_for as string) ?? "",
+    cancelledAt: (row.cancelled_at as string) ?? "",
   };
 }
 

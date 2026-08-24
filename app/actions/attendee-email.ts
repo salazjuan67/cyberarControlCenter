@@ -25,7 +25,9 @@ import type {
   AttendeeEmailPreview,
   AttendeeEmailRecipient,
   AttendeeEmailStatus,
+  CancelScheduledAttendeeEmailResult,
   RetryFailedAttendeeEmailInput,
+  ScheduleAttendeeEmailInput,
   SendAttendeeEmailInput,
   SendAttendeeEmailResult,
 } from "@/types/asistentes";
@@ -79,6 +81,7 @@ async function sendAttendeeBatch(params: {
   deliveryIdPrefix: string;
   mode: "insert" | "update";
   deliveryIds?: string[];
+  scheduledFor?: string;
 }): Promise<{
   sent: number;
   failed: number;
@@ -96,7 +99,9 @@ async function sendAttendeeBatch(params: {
     deliveryIdPrefix,
     mode,
     deliveryIds,
+    scheduledFor,
   } = params;
+  const isScheduled = Boolean(scheduledFor);
 
   const errors: string[] = [];
   const acceptedAttendeeIds: string[] = [];
@@ -111,6 +116,7 @@ async function sendAttendeeBatch(params: {
       subject,
       html,
       tags: [{ name: "campaign_id", value: campaignId }],
+      ...(scheduledFor ? { scheduledAt: scheduledFor } : {}),
     }));
 
     const { data, error } = await resend.batch.send(payload);
@@ -162,8 +168,8 @@ async function sendAttendeeBatch(params: {
 
       const row = {
         resend_email_id: resendEmailId,
-        status: accepted ? "sent" : "failed",
-        sent_at: accepted ? now : null,
+        status: accepted ? (isScheduled ? "pending" : "sent") : "failed",
+        sent_at: accepted && !isScheduled ? now : null,
         failed_at: accepted ? null : now,
         last_event_at: now,
       };
@@ -264,6 +270,20 @@ export async function getAttendeeEmailCampaigns(): Promise<AttendeeEmailCampaign
   return (data ?? []).map(mapAttendeeCampaign);
 }
 
+export async function getScheduledAttendeeEmailCampaigns(): Promise<AttendeeEmailCampaign[]> {
+  await requireAuth();
+  const supabase = createSupabaseServer();
+  const { data, error } = await supabase
+    .from("attendee_email_campaigns")
+    .select("*")
+    .not("scheduled_for", "is", null)
+    .is("cancelled_at", null)
+    .gt("scheduled_for", new Date().toISOString())
+    .order("scheduled_for", { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(mapAttendeeCampaign);
+}
+
 export async function getAttendeeEmailCampaignDetail(
   campaignId: string
 ): Promise<AttendeeEmailCampaignDetail | null> {
@@ -350,8 +370,9 @@ export async function getAttendeeEmailHistory(
   });
 }
 
-export async function sendAttendeeEmail(
-  input: SendAttendeeEmailInput
+async function dispatchAttendeeEmail(
+  input: SendAttendeeEmailInput,
+  scheduledFor?: string
 ): Promise<SendAttendeeEmailResult> {
   await requireAuth();
 
@@ -391,6 +412,7 @@ export async function sendAttendeeEmail(
       sent_count: 0,
       failed_count: 0,
       html,
+      scheduled_for: scheduledFor ?? null,
     });
     if (campaignError) throw new Error(campaignError.message);
 
@@ -404,10 +426,13 @@ export async function sendAttendeeEmail(
       recipients,
       deliveryIdPrefix: `${campaignId}-d`,
       mode: "insert",
+      scheduledFor,
     });
 
     await syncAttendeeCampaignCounts(supabase, campaignId);
-    await markAttendeesInvited(supabase, batchResult.acceptedAttendeeIds);
+    if (!scheduledFor) {
+      await markAttendeesInvited(supabase, batchResult.acceptedAttendeeIds);
+    }
 
     return {
       ok: batchResult.sent > 0,
@@ -426,6 +451,111 @@ export async function sendAttendeeEmail(
       campaignId,
     };
   }
+}
+
+export async function sendAttendeeEmail(
+  input: SendAttendeeEmailInput
+): Promise<SendAttendeeEmailResult> {
+  return dispatchAttendeeEmail(input);
+}
+
+export async function scheduleAttendeeEmail(
+  input: ScheduleAttendeeEmailInput
+): Promise<SendAttendeeEmailResult> {
+  const scheduledAt = Date.parse(input.scheduledFor);
+  const now = Date.now();
+  if (!Number.isFinite(scheduledAt) || scheduledAt < now + 5 * 60 * 1000) {
+    return {
+      ok: false,
+      sent: 0,
+      failed: 0,
+      errors: ["Elegí una fecha al menos 5 minutos posterior a la hora actual"],
+    };
+  }
+  if (scheduledAt > now + 30 * 24 * 60 * 60 * 1000) {
+    return {
+      ok: false,
+      sent: 0,
+      failed: 0,
+      errors: ["Resend permite programar envíos con hasta 30 días de anticipación"],
+    };
+  }
+  return dispatchAttendeeEmail(input, new Date(scheduledAt).toISOString());
+}
+
+export async function cancelScheduledAttendeeEmail(
+  campaignId: string
+): Promise<CancelScheduledAttendeeEmailResult> {
+  await requireAuth();
+  const supabase = createSupabaseServer();
+  const { data: campaign, error: campaignError } = await supabase
+    .from("attendee_email_campaigns")
+    .select("id, scheduled_for, cancelled_at")
+    .eq("id", campaignId)
+    .maybeSingle();
+  if (campaignError) throw new Error(campaignError.message);
+  if (!campaign?.scheduled_for || campaign.cancelled_at) {
+    return { ok: false, cancelled: 0, failed: 0, errors: ["La campaña no está programada"] };
+  }
+  if (Date.parse(campaign.scheduled_for as string) <= Date.now()) {
+    return { ok: false, cancelled: 0, failed: 0, errors: ["La campaña ya comenzó a enviarse"] };
+  }
+
+  const { data: deliveries, error: deliveriesError } = await supabase
+    .from("attendee_email_deliveries")
+    .select("id, resend_email_id")
+    .eq("campaign_id", campaignId)
+    .eq("status", "pending")
+    .not("resend_email_id", "is", null);
+  if (deliveriesError) throw new Error(deliveriesError.message);
+  if (!deliveries?.length) {
+    return {
+      ok: false,
+      cancelled: 0,
+      failed: 0,
+      errors: ["No hay emails pendientes para cancelar"],
+    };
+  }
+
+  const resend = getResendClient();
+  const cancelledIds: string[] = [];
+  const errors: string[] = [];
+  for (let index = 0; index < deliveries.length; index += 20) {
+    const chunk = deliveries.slice(index, index + 20);
+    const results = await Promise.all(
+      chunk.map(async (delivery) => ({
+        delivery,
+        result: await resend.emails.cancel(delivery.resend_email_id as string),
+      }))
+    );
+    for (const { delivery, result } of results) {
+      if (result.error) errors.push(result.error.message);
+      else cancelledIds.push(delivery.id as string);
+    }
+  }
+
+  const cancelledAt = new Date().toISOString();
+  if (cancelledIds.length > 0) {
+    const { error } = await supabase
+      .from("attendee_email_deliveries")
+      .update({ status: "cancelled", last_event_at: cancelledAt })
+      .in("id", cancelledIds);
+    if (error) throw new Error(error.message);
+  }
+  if (cancelledIds.length === deliveries.length) {
+    const { error } = await supabase
+      .from("attendee_email_campaigns")
+      .update({ cancelled_at: cancelledAt })
+      .eq("id", campaignId);
+    if (error) throw new Error(error.message);
+  }
+
+  return {
+    ok: errors.length === 0,
+    cancelled: cancelledIds.length,
+    failed: errors.length,
+    errors: [...new Set(errors)].slice(0, 5),
+  };
 }
 
 export async function retryFailedAttendeeEmails(

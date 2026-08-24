@@ -149,6 +149,8 @@ CREATE TABLE IF NOT EXISTS attendee_email_campaigns (
   sent_count INT NOT NULL DEFAULT 0,
   failed_count INT NOT NULL DEFAULT 0,
   html TEXT DEFAULT '',
+  scheduled_for TIMESTAMPTZ,
+  cancelled_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

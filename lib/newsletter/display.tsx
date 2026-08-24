@@ -9,6 +9,7 @@ const STATUS_LABELS: Record<NewsletterDeliveryStatus, string> = {
   bounced: "Rebotado",
   failed: "Fallido",
   delayed: "Demorado",
+  cancelled: "Cancelado",
 };
 
 const STATUS_CLASSES: Record<NewsletterDeliveryStatus, string> = {
@@ -18,6 +19,7 @@ const STATUS_CLASSES: Record<NewsletterDeliveryStatus, string> = {
   bounced: "bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300",
   failed: "bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300",
   delayed: "bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300",
+  cancelled: "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300",
 };
 
 export function formatNewsletterDate(value: string): string {

@@ -58,7 +58,8 @@ export type AttendeeDeliveryStatus =
   | "delivered"
   | "bounced"
   | "failed"
-  | "delayed";
+  | "delayed"
+  | "cancelled";
 
 export interface AttendeeEmailRecipient {
   email: string;
@@ -83,6 +84,8 @@ export interface AttendeeEmailCampaign {
   failedCount: number;
   createdAt: string;
   html?: string;
+  scheduledFor: string;
+  cancelledAt: string;
 }
 
 export interface RetryFailedAttendeeEmailInput {
@@ -150,6 +153,10 @@ export interface SendAttendeeEmailInput {
   audience: AttendeeEmailAudience;
 }
 
+export interface ScheduleAttendeeEmailInput extends SendAttendeeEmailInput {
+  scheduledFor: string;
+}
+
 export interface SendAttendeeEmailResult {
   ok: boolean;
   sent: number;
@@ -157,6 +164,13 @@ export interface SendAttendeeEmailResult {
   errors: string[];
   campaignId?: string;
   acceptedAttendeeIds?: string[];
+}
+
+export interface CancelScheduledAttendeeEmailResult {
+  ok: boolean;
+  cancelled: number;
+  failed: number;
+  errors: string[];
 }
 
 export interface AttendeeEmailStatus {

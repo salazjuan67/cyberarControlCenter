@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { AlertCircle, Loader2, Mail, Send, Sparkles, Users } from "lucide-react";
+import { AlertCircle, CalendarClock, Loader2, Mail, Send, Sparkles, Users } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,11 +10,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   getAttendeeEmailStatus,
   previewAttendeeEmailRecipients,
+  scheduleAttendeeEmail,
   sendAttendeeEmail,
   sendAttendeeTestEmail,
 } from "@/app/actions/attendee-email";
 import { NewsletterHtmlPreview } from "@/components/newsletter/NewsletterHtmlPreview";
 import { AttendeeEmailTrackingPanel } from "@/components/asistentes/AttendeeEmailTrackingPanel";
+import { ScheduledAttendeeEmailsPanel } from "@/components/asistentes/ScheduledAttendeeEmailsPanel";
 import { buildRegisteredAttendeeSocialTemplate } from "@/lib/asistentes/registered-social-template";
 import type { AttendeeEmailAudience } from "@/types/asistentes";
 
@@ -44,9 +46,12 @@ export function AttendeeEmailPanel() {
   const [subject, setSubject] = useState("");
   const [html, setHtml] = useState("");
   const [testEmail, setTestEmail] = useState("");
+  const [scheduledFor, setScheduledFor] = useState("");
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [sendingTest, setSendingTest] = useState(false);
   const [sending, setSending] = useState(false);
+  const [scheduling, setScheduling] = useState(false);
+  const [scheduledRefreshKey, setScheduledRefreshKey] = useState(0);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -78,6 +83,14 @@ export function AttendeeEmailPanel() {
   useEffect(() => {
     if (message || error) window.scrollTo({ top: 0, behavior: "smooth" });
   }, [message, error]);
+
+  const handleScheduledResult = useCallback(
+    (nextMessage: string | null, nextError: string | null) => {
+      setMessage(nextMessage);
+      setError(nextError);
+    },
+    []
+  );
 
   function handleGenerateTemplate() {
     if (
@@ -165,6 +178,48 @@ export function AttendeeEmailPanel() {
       );
     } finally {
       setSending(false);
+    }
+  }
+
+  async function handleSchedule() {
+    if (!html.trim() || recipientCount === 0 || !scheduledFor) {
+      setError("Completá HTML, destinatarios y fecha de programación.");
+      return;
+    }
+    const scheduledDate = new Date(scheduledFor);
+    if (!Number.isFinite(scheduledDate.getTime())) {
+      setError("La fecha de programación no es válida.");
+      return;
+    }
+    if (
+      !window.confirm(
+        `¿Programar este newsletter para ${recipientCount} asistente(s) el ${scheduledDate.toLocaleString("es-AR")}?`
+      )
+    ) {
+      return;
+    }
+
+    setScheduling(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const result = await scheduleAttendeeEmail({
+        subject: subject || "CYBER.AR 2026",
+        html,
+        audience,
+        scheduledFor: scheduledDate.toISOString(),
+      });
+      if (!result.ok) {
+        setError(result.errors.join(" · ") || "No se pudo programar el envío.");
+        return;
+      }
+      setMessage(
+        `Newsletter programado para ${scheduledDate.toLocaleString("es-AR")} · ${result.sent} destinatario(s).`
+      );
+      setScheduledFor("");
+      setScheduledRefreshKey((value) => value + 1);
+    } finally {
+      setScheduling(false);
     }
   }
 
@@ -266,13 +321,62 @@ export function AttendeeEmailPanel() {
               {sendingTest ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               Enviar prueba
             </Button>
-            <Button type="button" onClick={handleSend} disabled={!resendReady || sending || recipientCount === 0} className="w-full bg-violet-600 hover:bg-violet-500 text-white font-semibold gap-2">
+            <Button type="button" onClick={handleSend} disabled={!resendReady || sending || scheduling || recipientCount === 0} className="w-full bg-violet-600 hover:bg-violet-500 text-white font-semibold gap-2">
               {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
               Enviar comunicación masiva
             </Button>
+            <div className="space-y-3 border-t border-slate-200 pt-4 dark:border-slate-700">
+              <div className="flex items-center gap-2">
+                <CalendarClock className="h-4 w-4 text-amber-500" />
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                    Programar newsletter
+                  </p>
+                  <p className="text-xs text-slate-400">
+                    Hasta 30 días de anticipación.
+                  </p>
+                </div>
+              </div>
+              <Input
+                type="datetime-local"
+                value={scheduledFor}
+                onChange={(event) => setScheduledFor(event.target.value)}
+                min={new Date(
+                  Date.now() + 5 * 60 * 1000 - new Date().getTimezoneOffset() * 60 * 1000
+                )
+                  .toISOString()
+                  .slice(0, 16)}
+                className={inputCls}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleSchedule}
+                disabled={
+                  !resendReady ||
+                  scheduling ||
+                  sending ||
+                  recipientCount === 0 ||
+                  !scheduledFor
+                }
+                className="w-full gap-2 border-amber-300 text-amber-700 hover:bg-amber-50 hover:text-amber-800 dark:border-amber-500/40 dark:text-amber-300 dark:hover:bg-amber-500/10"
+              >
+                {scheduling ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <CalendarClock className="h-4 w-4" />
+                )}
+                Programar envío
+              </Button>
+            </div>
           </div>
         </div>
       </div>
+
+      <ScheduledAttendeeEmailsPanel
+        refreshKey={scheduledRefreshKey}
+        onResult={handleScheduledResult}
+      />
 
       <AttendeeEmailTrackingPanel
         html={html}

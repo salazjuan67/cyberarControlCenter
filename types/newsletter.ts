@@ -13,7 +13,8 @@ export type NewsletterDeliveryStatus =
   | "delivered"
   | "bounced"
   | "failed"
-  | "delayed";
+  | "delayed"
+  | "cancelled";
 
 export interface NewsletterRecipient {
   email: string;
