@@ -203,6 +203,8 @@ export function mapAsistentePotencial(row: Record<string, unknown>): AsistentePo
     registrationId: (row.registration_id as string) ?? "",
     registrationStatus: (row.registration_status as string) ?? "",
     paymentStatus: (row.payment_status as string) ?? "",
+    paymentMethod: (row.registration_payment_method as string) ?? "",
+    accessType: (row.registration_access_type as string) ?? "",
     registeredAt: (row.registered_at as string) ?? "",
     registrationSyncedAt: (row.registration_synced_at as string) ?? "",
   };
@@ -231,6 +233,8 @@ export function asistentePotencialToRow(a: AsistentePotencial) {
     registration_id: a.registrationId || null,
     registration_status: a.registrationStatus || "",
     payment_status: a.paymentStatus || "",
+    registration_payment_method: a.paymentMethod || "",
+    registration_access_type: a.accessType || "",
     registered_at: a.registeredAt || null,
     registration_synced_at: a.registrationSyncedAt || null,
   };

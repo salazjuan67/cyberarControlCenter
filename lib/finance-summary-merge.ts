@@ -1,5 +1,6 @@
 import type { FinanceSummary } from "@/types/finance-summary";
 import type { Inscripcion, Moneda } from "@/types";
+import type { AsistentePotencial } from "@/types/asistentes";
 
 function filterByMoneda(inscripciones: Inscripcion[], moneda: Moneda): Inscripcion[] {
   return inscripciones.filter((i) => i.moneda === moneda);
@@ -84,6 +85,49 @@ export function getFinanceParticipantsByCategoria(
   summary: FinanceSummary | null | undefined
 ): Record<string, number> {
   return summary?.participants?.by_categoria ?? {};
+}
+
+export function mergeInvitedParticipants(
+  summary: FinanceSummary | null | undefined,
+  attendees: AsistentePotencial[]
+): FinanceSummary | null {
+  if (!summary) return null;
+  const invited = attendees.filter(
+    (attendee) =>
+      attendee.registrationStatus?.trim().toLowerCase() === "confirmed" &&
+      attendee.paymentMethod?.trim().toLowerCase() === "invitacion"
+  );
+  if (invited.length === 0) return summary;
+
+  const byCategoria = { ...summary.participants.by_categoria };
+  const byModalidad = { ...summary.participants.by_modalidad };
+  const byCategoriaModalidad = { ...summary.participants.by_categoria_modalidad };
+  const existingInvited = byCategoria.invitado ?? 0;
+  byCategoria.invitado = Math.max(existingInvited, invited.length);
+
+  const invitedByModality = invited.reduce<Record<string, number>>((acc, attendee) => {
+    const key = attendee.modalidad?.trim().toLowerCase() || "sin_dato";
+    acc[key] = (acc[key] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  for (const [modality, count] of Object.entries(invitedByModality)) {
+    const categoryModalityKey = `invitado|${modality}`;
+    const existing = byCategoriaModalidad[categoryModalityKey] ?? 0;
+    const delta = Math.max(0, count - existing);
+    byCategoriaModalidad[categoryModalityKey] = Math.max(existing, count);
+    byModalidad[modality] = (byModalidad[modality] ?? 0) + delta;
+  }
+
+  return {
+    ...summary,
+    participants: {
+      total: summary.participants.total + Math.max(0, invited.length - existingInvited),
+      by_categoria: byCategoria,
+      by_modalidad: byModalidad,
+      by_categoria_modalidad: byCategoriaModalidad,
+    },
+  };
 }
 
 /** Ingresos confirmados: API (pagos aprobados) completa o reemplaza manual */

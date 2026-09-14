@@ -135,10 +135,15 @@ CREATE TABLE IF NOT EXISTS asistentes_potenciales (
   registration_id TEXT,
   registration_status TEXT DEFAULT '',
   payment_status TEXT DEFAULT '',
+  registration_payment_method TEXT DEFAULT '',
+  registration_access_type TEXT DEFAULT '',
   registered_at TIMESTAMPTZ,
   registration_synced_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+CREATE INDEX IF NOT EXISTS idx_asistentes_registration_payment_method
+  ON asistentes_potenciales(registration_payment_method);
 
 CREATE TABLE IF NOT EXISTS attendee_email_campaigns (
   id TEXT PRIMARY KEY,

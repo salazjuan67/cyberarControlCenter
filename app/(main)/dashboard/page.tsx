@@ -16,6 +16,7 @@ import { RevenueChart } from "@/components/dashboard/RevenueChart";
 import { SponsorStatusChart, IngresosFuenteChart, InscripcionesModalidadChart } from "@/components/dashboard/DistributionCharts";
 import { ExecutiveSummary } from "@/components/dashboard/ExecutiveSummary";
 import { isAbandonedAttendee } from "@/lib/asistentes/filters";
+import { mergeInvitedParticipants } from "@/lib/finance-summary-merge";
 
 export default function DashboardPage() {
   const {
@@ -30,14 +31,24 @@ export default function DashboardPage() {
     financeSummaryConfigured,
     refreshFinanceSummary,
   } = useStore();
-  const activeMonedas = getActiveMonedas(sponsors, inscripciones, gastos, [], financeSummary);
+  const displayFinanceSummary = mergeInvitedParticipants(
+    financeSummary,
+    asistentesPotenciales
+  );
+  const activeMonedas = getActiveMonedas(
+    sponsors,
+    inscripciones,
+    gastos,
+    [],
+    displayFinanceSummary
+  );
   const kpisByMoneda = calcKPIsByMoneda(
     sponsors,
     inscripciones,
     gastos,
     config.breakEven,
     config.breakEvenMoneda,
-    financeSummary
+    displayFinanceSummary
   );
 
   const hasManualData = getActiveMonedas(sponsors, inscripciones, gastos).length > 0;
@@ -59,7 +70,7 @@ export default function DashboardPage() {
       <Header title="Dashboard Ejecutivo" subtitle="CYBER.AR 2026 — Vista financiera consolidada" badge="Tiempo real" />
       <div className="p-4 md:p-6 space-y-8 md:space-y-10">
         <CyberarFinancePanel
-          summary={financeSummary}
+          summary={displayFinanceSummary}
           loading={financeSummaryLoading}
           error={financeSummaryError}
           configured={financeSummaryConfigured}
@@ -124,7 +135,7 @@ export default function DashboardPage() {
         {activeMonedas.map((moneda) => {
           const kpis = kpisByMoneda[moneda]!;
           const sponsorsIngresos = calcSponsorsConfirmados(sponsors, moneda);
-          const inscripcionesProyTotal = calcTotalInscripcionesProyectado(inscripciones, moneda, financeSummary);
+          const inscripcionesProyTotal = calcTotalInscripcionesProyectado(inscripciones, moneda, displayFinanceSummary);
           const inscripcionesConfTotal = kpis.ingresosConfirmados - sponsorsIngresos;
           const sponsorsProyTotal = kpis.ingresosProyectados - inscripcionesProyTotal;
 
@@ -186,7 +197,7 @@ export default function DashboardPage() {
                   <InscripcionesModalidadChart
                     inscripciones={inscripciones}
                     moneda={moneda}
-                    financeSummary={financeSummary}
+                    financeSummary={displayFinanceSummary}
                   />
                 </div>
               </div>

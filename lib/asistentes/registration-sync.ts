@@ -9,7 +9,8 @@ export function normalizeRegistrationEmail(value: string): string {
   return value.trim().toLowerCase();
 }
 
-function mapCategory(value: string): AsistenteCategoria {
+function mapCategory(value: string, paymentMethod: string): AsistenteCategoria {
+  if (paymentMethod.trim().toLowerCase() === "invitacion") return "Invitado";
   switch (value.trim().toLowerCase()) {
     case "alumno_grado":
       return "Estudiante";
@@ -49,7 +50,7 @@ export function mergeRegistrationIntoAttendee(
     telefono: "",
     organizacion: "",
     cargo: "",
-    categoria: mapCategory(registration.category),
+    categoria: mapCategory(registration.category, registration.paymentMethod),
     modalidad: mapModality(registration.modality),
     estado: confirmed ? "Inscripto" : "Interesado",
     origen: "Sistema de inscripciones",
@@ -68,7 +69,7 @@ export function mergeRegistrationIntoAttendee(
     email: registration.email,
     telefono: base.telefono || registration.phone,
     organizacion: base.organizacion || registration.organization,
-    categoria: mapCategory(registration.category),
+    categoria: mapCategory(registration.category, registration.paymentMethod),
     modalidad: mapModality(registration.modality) || base.modalidad,
     estado: confirmed ? "Inscripto" : base.estado,
     origen: appendOrigin(base.origen),
@@ -81,6 +82,8 @@ export function mergeRegistrationIntoAttendee(
     registrationId: registration.id,
     registrationStatus: registration.registrationStatus,
     paymentStatus: registration.paymentStatus,
+    paymentMethod: registration.paymentMethod,
+    accessType: registration.accessType,
     registeredAt: registration.registeredAt,
     registrationSyncedAt: syncedAt,
   };

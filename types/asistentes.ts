@@ -38,6 +38,8 @@ export interface AsistentePotencial {
   registrationId?: string;
   registrationStatus?: string;
   paymentStatus?: string;
+  paymentMethod?: string;
+  accessType?: string;
   registeredAt?: string;
   registrationSyncedAt?: string;
 }
