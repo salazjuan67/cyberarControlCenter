@@ -23,6 +23,14 @@ interface Operation {
   scheduledFor: string | null;
 }
 
+interface BatchProxyInput {
+  mode: "batch";
+  campaignId: string;
+  batchIndex: number;
+  html: string;
+  recipients: string[];
+}
+
 const OPERATIONS: Operation[] = [
   {
     campaignId: "aec-20260914-two-days",
@@ -291,6 +299,40 @@ export async function POST(request: Request) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
   try {
+    const input = (await request.json().catch(() => null)) as BatchProxyInput | null;
+    if (input?.mode === "batch") {
+      const operation = OPERATIONS.find((item) => item.campaignId === input.campaignId);
+      if (
+        !operation ||
+        !Number.isInteger(input.batchIndex) ||
+        input.batchIndex < 0 ||
+        !input.html?.includes("CYBER.AR") ||
+        input.html.length > 200_000 ||
+        !Array.isArray(input.recipients) ||
+        input.recipients.length === 0 ||
+        input.recipients.length > BATCH_SIZE ||
+        input.recipients.some((email) => !EMAIL_RE.test(String(email).trim()))
+      ) {
+        return Response.json({ error: "Invalid batch payload" }, { status: 400 });
+      }
+      const { from } = assertResendReady("attendees");
+      const result = await getResendClient().batch.send(
+        input.recipients.map((email) => ({
+          from,
+          to: [email],
+          subject: operation.subject,
+          html: input.html,
+          tags: [{ name: "campaign_id", value: operation.campaignId }],
+          ...(operation.scheduledFor ? { scheduledAt: operation.scheduledFor } : {}),
+        })),
+        { idempotencyKey: `${operation.campaignId}-batch-${input.batchIndex}` }
+      );
+      if (result.error) {
+        return Response.json({ error: result.error.message }, { status: 502 });
+      }
+      return Response.json({ ids: (result.data?.data ?? []).map((item) => item.id) });
+    }
+
     const recipients = await resolveRecipients();
     const results = [];
     for (const operation of OPERATIONS) {
