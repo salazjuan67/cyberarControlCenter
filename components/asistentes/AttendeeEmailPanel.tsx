@@ -1,7 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { AlertCircle, CalendarClock, Loader2, Mail, Save, Send, Sparkles, Users } from "lucide-react";
+import {
+  AlertCircle,
+  CalendarClock,
+  ChevronDown,
+  ChevronUp,
+  Loader2,
+  Mail,
+  Save,
+  Send,
+  Sparkles,
+  Users,
+} from "lucide-react";
 import { useStore } from "@/store/useStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,6 +63,7 @@ export function AttendeeEmailPanel() {
   const [activeDraftName, setActiveDraftName] = useState("");
   const [draftRefreshKey, setDraftRefreshKey] = useState(0);
   const [savingDraft, setSavingDraft] = useState(false);
+  const [contentExpanded, setContentExpanded] = useState(false);
   const [testEmail, setTestEmail] = useState("");
   const [scheduledFor, setScheduledFor] = useState("");
   const [loadingPreview, setLoadingPreview] = useState(false);
@@ -105,6 +117,7 @@ export function AttendeeEmailPanel() {
     setSubject(draft.subject);
     setHtml(draft.html);
     setAudience(draft.audience);
+    setContentExpanded(true);
     setMessage(`Borrador “${draft.name}” cargado en el editor.`);
     setError(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -129,6 +142,7 @@ export function AttendeeEmailPanel() {
     setSubject(template.subject);
     setHtml(template.html);
     setAudience("registered_confirmed");
+    setContentExpanded(true);
     setError(null);
     setMessage("Template generado. Editá los textos, la imagen y los enlaces marcados en el HTML.");
   }
@@ -308,14 +322,28 @@ export function AttendeeEmailPanel() {
 
       <div className="grid gap-4 xl:grid-cols-2 xl:items-start">
         <div className="space-y-4">
-          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5 space-y-4">
+          <div className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-2">
-                <Mail className="w-4 h-4 text-violet-500" />
-                <h3 className="font-semibold text-sm text-slate-700 dark:text-slate-200">Contenido</h3>
-              </div>
+              <button
+                type="button"
+                onClick={() => setContentExpanded((value) => !value)}
+                aria-expanded={contentExpanded}
+                className="flex min-w-0 items-center gap-3 rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2"
+              >
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-300">
+                  <Mail className="h-4 w-4" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-semibold text-slate-700 dark:text-slate-200">
+                    Contenido
+                  </span>
+                  <span className="block truncate text-xs text-slate-400">
+                    {subject.trim() || "Sin asunto cargado"}
+                  </span>
+                </span>
+              </button>
               <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-                {activeDraftId && (
+                {contentExpanded && activeDraftId && (
                   <Button
                     type="button"
                     variant="outline"
@@ -331,36 +359,68 @@ export function AttendeeEmailPanel() {
                     Guardar borrador
                   </Button>
                 )}
+                {contentExpanded && (
+                  <Button
+                    type="button"
+                    onClick={handleGenerateTemplate}
+                    className="bg-violet-600 font-semibold text-white hover:bg-violet-500"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    Template para inscriptos
+                  </Button>
+                )}
                 <Button
                   type="button"
-                  onClick={handleGenerateTemplate}
-                  className="bg-violet-600 font-semibold text-white hover:bg-violet-500"
+                  variant="outline"
+                  onClick={() => setContentExpanded((value) => !value)}
+                  aria-expanded={contentExpanded}
+                  className="gap-2"
                 >
-                  <Sparkles className="h-4 w-4" />
-                  Template para inscriptos
+                  {contentExpanded ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                  {contentExpanded ? "Contraer" : "Desplegar"}
                 </Button>
               </div>
             </div>
-            {activeDraftId ? (
-              <p className="rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs text-cyan-800 dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-200">
-                Editando borrador: <strong>{activeDraftName}</strong>. Los cambios no se guardan
-                hasta presionar “Guardar borrador”.
-              </p>
-            ) : (
-              <p className="rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-xs text-violet-800 dark:border-violet-500/20 dark:bg-violet-500/10 dark:text-violet-200">
-                Carga el email de novedades para asistentes confirmados.
-              </p>
+
+            {contentExpanded && (
+              <div className="mt-4 space-y-4 border-t border-slate-100 pt-4 dark:border-slate-800">
+                {activeDraftId ? (
+                  <p className="rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs text-cyan-800 dark:border-cyan-500/20 dark:bg-cyan-500/10 dark:text-cyan-200">
+                    Editando borrador: <strong>{activeDraftName}</strong>. Los cambios no se
+                    guardan hasta presionar “Guardar borrador”.
+                  </p>
+                ) : (
+                  <p className="rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-xs text-violet-800 dark:border-violet-500/20 dark:bg-violet-500/10 dark:text-violet-200">
+                    Carga el email de novedades para asistentes confirmados.
+                  </p>
+                )}
+                <div>
+                  <label className="mb-1.5 block text-xs text-slate-500">Asunto</label>
+                  <Input
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                    placeholder="Invitación CYBER.AR 2026"
+                    className={inputCls}
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs text-slate-500">HTML del email</label>
+                  <Textarea
+                    value={html}
+                    onChange={(e) => setHtml(e.target.value)}
+                    rows={14}
+                    className={`${inputCls} font-mono text-xs`}
+                    placeholder="Pegá el HTML de la invitación..."
+                  />
+                </div>
+              </div>
             )}
-            <div>
-              <label className="text-xs text-slate-500 mb-1.5 block">Asunto</label>
-              <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Invitación CYBER.AR 2026" className={inputCls} />
-            </div>
-            <div>
-              <label className="text-xs text-slate-500 mb-1.5 block">HTML del email</label>
-              <Textarea value={html} onChange={(e) => setHtml(e.target.value)} rows={14} className={`${inputCls} font-mono text-xs`} placeholder="Pegá el HTML de la invitación..." />
-            </div>
           </div>
-          <NewsletterHtmlPreview html={html} subject={subject} />
+          {contentExpanded && <NewsletterHtmlPreview html={html} subject={subject} />}
         </div>
 
         <div className="space-y-4">

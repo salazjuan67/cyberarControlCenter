@@ -57,8 +57,8 @@ const definitions = [
   {
     id: "draft-potential-06-tres-dias",
     sortOrder: 6,
-    name: "Faltan 3 días",
-    subject: "En 3 días comienza CYBER.AR 2026",
+    name: "Faltan 2 días",
+    subject: "En 2 días comienza CYBER.AR 2026",
     file: "06-cyberar-3-dias.html",
     recommendedFor: "2026-09-13T22:00:00.000Z",
   },
