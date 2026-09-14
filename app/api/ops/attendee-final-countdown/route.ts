@@ -27,6 +27,7 @@ interface BatchProxyInput {
   mode: "batch";
   campaignId: string;
   batchIndex: number;
+  attempt?: number;
   html: string;
   recipients: string[];
 }
@@ -306,6 +307,9 @@ export async function POST(request: Request) {
         !operation ||
         !Number.isInteger(input.batchIndex) ||
         input.batchIndex < 0 ||
+        !Number.isInteger(input.attempt ?? 0) ||
+        (input.attempt ?? 0) < 0 ||
+        (input.attempt ?? 0) > 5 ||
         !input.html?.includes("CYBER.AR") ||
         input.html.length > 200_000 ||
         !Array.isArray(input.recipients) ||
@@ -325,7 +329,12 @@ export async function POST(request: Request) {
           tags: [{ name: "campaign_id", value: operation.campaignId }],
           ...(operation.scheduledFor ? { scheduledAt: operation.scheduledFor } : {}),
         })),
-        { idempotencyKey: `${operation.campaignId}-batch-${input.batchIndex}` }
+        {
+          idempotencyKey:
+            (input.attempt ?? 0) === 0
+              ? `${operation.campaignId}-batch-${input.batchIndex}`
+              : `${operation.campaignId}-batch-${input.batchIndex}-attempt-${input.attempt}`,
+        }
       );
       if (result.error) {
         return Response.json({ error: result.error.message }, { status: 502 });
