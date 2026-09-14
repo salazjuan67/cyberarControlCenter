@@ -16,6 +16,7 @@ import { AsistenteImportDialog } from "@/components/asistentes/AsistenteImportDi
 import {
   DEFAULT_ASISTENTE_FILTERS,
   filterAsistentes,
+  isAbandonedAttendee,
   type AsistenteFilters,
 } from "@/lib/asistentes/filters";
 import type { AsistentePotencial, AsistenteEstado } from "@/types/asistentes";
@@ -62,9 +63,13 @@ export default function AsistentesPotencialesPage() {
   const [syncError, setSyncError] = useState<string | null>(null);
 
   const filtered = useMemo(() => filterAsistentes(asistentesPotenciales, filters), [asistentesPotenciales, filters]);
-  const conEmail = asistentesPotenciales.filter((a) => a.email.trim()).length;
-  const inscriptos = asistentesPotenciales.filter((a) => a.estado === "Inscripto").length;
-  const enPipeline = asistentesPotenciales.filter((a) =>
+  const countableAttendees = useMemo(
+    () => asistentesPotenciales.filter((attendee) => !isAbandonedAttendee(attendee)),
+    [asistentesPotenciales]
+  );
+  const conEmail = countableAttendees.filter((a) => a.email.trim()).length;
+  const inscriptos = countableAttendees.filter((a) => a.estado === "Inscripto").length;
+  const enPipeline = countableAttendees.filter((a) =>
     ["Lead", "Contactado", "Invitación enviada", "Interesado"].includes(a.estado)
   ).length;
 
@@ -108,7 +113,7 @@ export default function AsistentesPotencialesPage() {
     <div className="flex flex-col flex-1">
       <Header
         title="Asistentes potenciales"
-        subtitle={`${asistentesPotenciales.length} contactos · ${conEmail} con email`}
+        subtitle={`${countableAttendees.length} contactos · ${conEmail} con email`}
         badge="Conversión"
         actions={
           <div className="hidden sm:flex rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
@@ -151,7 +156,7 @@ export default function AsistentesPotencialesPage() {
         {view !== "comunicaciones" && (
           <>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <KPICard title="Total contactos" value={String(asistentesPotenciales.length)} icon={Users} accent="cyan" />
+              <KPICard title="Total contactos" value={String(countableAttendees.length)} icon={Users} accent="cyan" />
               <KPICard title="Con email" value={String(conEmail)} icon={Mail} accent="purple" />
               <KPICard title="En pipeline" value={String(enPipeline)} subtitle="Lead → Interesado" icon={UserPlus} accent="yellow" />
               <KPICard title="Inscriptos" value={String(inscriptos)} icon={UserPlus} accent="emerald" />

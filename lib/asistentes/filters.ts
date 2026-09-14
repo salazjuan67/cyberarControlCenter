@@ -14,6 +14,17 @@ export const DEFAULT_ASISTENTE_FILTERS: AsistenteFilters = {
   registrationStatus: "Todos",
 };
 
+const ABANDONED_PAYMENT_STATUSES = new Set(["pendiente", "iniciado"]);
+
+export function isAbandonedAttendee(attendee: AsistentePotencial): boolean {
+  const registrationStatus = attendee.registrationStatus?.trim().toLowerCase();
+  const paymentStatus = attendee.paymentStatus?.trim().toLowerCase();
+  return (
+    registrationStatus === "pending" &&
+    ABANDONED_PAYMENT_STATUSES.has(paymentStatus ?? "")
+  );
+}
+
 export function filterAsistentes(
   asistentes: AsistentePotencial[],
   filters: AsistenteFilters

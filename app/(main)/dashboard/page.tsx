@@ -15,7 +15,7 @@ import { CyberarFinancePanel } from "@/components/dashboard/CyberarFinancePanel"
 import { RevenueChart } from "@/components/dashboard/RevenueChart";
 import { SponsorStatusChart, IngresosFuenteChart, InscripcionesModalidadChart } from "@/components/dashboard/DistributionCharts";
 import { ExecutiveSummary } from "@/components/dashboard/ExecutiveSummary";
-import type { Moneda } from "@/types";
+import { isAbandonedAttendee } from "@/lib/asistentes/filters";
 
 export default function DashboardPage() {
   const {
@@ -42,12 +42,15 @@ export default function DashboardPage() {
 
   const hasManualData = getActiveMonedas(sponsors, inscripciones, gastos).length > 0;
   const hasFinanceData = activeMonedas.length > 0;
-  const asistentesConEmail = asistentesPotenciales.filter((a) => a.email.trim()).length;
-  const asistentesContactados = asistentesPotenciales.filter((a) =>
+  const countableAttendees = asistentesPotenciales.filter(
+    (attendee) => !isAbandonedAttendee(attendee)
+  );
+  const asistentesConEmail = countableAttendees.filter((a) => a.email.trim()).length;
+  const asistentesContactados = countableAttendees.filter((a) =>
     ["Invitación enviada", "Interesado", "Inscripto"].includes(a.estado)
   ).length;
-  const asistentesInteresados = asistentesPotenciales.filter((a) => a.estado === "Interesado").length;
-  const asistentesInscriptos = asistentesPotenciales.filter(
+  const asistentesInteresados = countableAttendees.filter((a) => a.estado === "Interesado").length;
+  const asistentesInscriptos = countableAttendees.filter(
     (a) => a.estado === "Inscripto" || a.registrationStatus === "confirmed"
   ).length;
 
@@ -75,7 +78,7 @@ export default function DashboardPage() {
           <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4">
             <KPICard
               title="Base de asistentes"
-              value={formatNumber(asistentesPotenciales.length)}
+              value={formatNumber(countableAttendees.length)}
               subtitle={`${formatNumber(asistentesConEmail)} con email`}
               icon={Users}
               accent="cyan"
@@ -102,8 +105,8 @@ export default function DashboardPage() {
               title="Inscriptos"
               value={formatNumber(asistentesInscriptos)}
               subtitle={
-                asistentesPotenciales.length > 0
-                  ? `${((asistentesInscriptos / asistentesPotenciales.length) * 100).toFixed(1)}% de la base`
+                countableAttendees.length > 0
+                  ? `${((asistentesInscriptos / countableAttendees.length) * 100).toFixed(1)}% de la base`
                   : "Sin asistentes"
               }
               icon={UserCheck}
