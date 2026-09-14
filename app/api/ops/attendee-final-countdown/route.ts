@@ -194,7 +194,7 @@ async function executeOperation(operation: Operation, recipients: Recipient[]) {
 
   const deliveryRows = await loadAllRows(
     "attendee_email_deliveries",
-    "id,attendee_id,recipient_email,recipient_name,organizacion,status,resend_email_id",
+    "id,campaign_id,attendee_id,recipient_email,recipient_name,organizacion,status,resend_email_id",
     { equals: ["campaign_id", operation.campaignId], orders: ["id"] }
   );
   const resend = getResendClient();
